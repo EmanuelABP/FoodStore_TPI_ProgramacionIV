@@ -26,8 +26,13 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="Food Store - TP Unidad 9",
-    description="API REST desarrollada con FastAPI, SQLModel y PostgreSQL",
+    title="Food Store - TPI Programación IV",
+    description=(
+        "API REST de Food Store para el Trabajo Práctico Integrador de Programación IV. "
+        "Desarrollado por Emanuel Aaron Brahim Pollini, estudiante de la Tecnicatura "
+        "Universitaria en Programación de la UTN. Durante el desarrollo del TPI, "
+        "conserva los módulos heredados del TP9 de autenticación, catálogo y pedidos."
+    ),
     version="1.0.0",
     lifespan=lifespan,
 )
