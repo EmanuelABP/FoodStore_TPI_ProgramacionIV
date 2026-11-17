@@ -1,0 +1,101 @@
+# Ejecutar en orden en una base de prueba. Completar las credenciales del administrador.
+# Si repito las altas, cambio el email de prueba.
+@baseUrl = http://localhost:8000
+@email = cliente.tp9@example.com
+@clave = FoodStore-Prueba9
+@adminEmail = admin@foodstore.com
+@adminPassword = REEMPLAZAR_CON_CLAVE_DE_PRUEBA
+
+### Eliminar una sesión anterior (204)
+POST {{baseUrl}}/api/v1/auth/logout
+
+### Perfil sin sesión (401)
+GET {{baseUrl}}/api/v1/auth/me
+
+### Catálogo sin sesión (401)
+GET {{baseUrl}}/categorias/
+
+### Registrar cliente (201)
+# @name cliente
+POST {{baseUrl}}/api/v1/auth/register
+Content-Type: application/json
+
+{"nombre":"Cliente","apellido":"Prueba","email":"{{email}}","password":"{{clave}}"}
+
+### Email duplicado (409)
+POST {{baseUrl}}/api/v1/auth/register
+Content-Type: application/json
+
+{"nombre":"Cliente","apellido":"Prueba","email":"{{email}}","password":"{{clave}}"}
+
+### Email inválido (422)
+POST {{baseUrl}}/api/v1/auth/register
+Content-Type: application/json
+
+{"nombre":"Cliente","apellido":"Prueba","email":"invalido","password":"{{clave}}"}
+
+### Contraseña corta (422)
+POST {{baseUrl}}/api/v1/auth/register
+Content-Type: application/json
+
+{"nombre":"Cliente","apellido":"Prueba","email":"{{email}}","password":"123"}
+
+### Credenciales incorrectas (401)
+POST {{baseUrl}}/api/v1/auth/token
+Content-Type: application/x-www-form-urlencoded
+
+username={{email}}&password=incorrecta
+
+### Login cliente, revisar Set-Cookie HttpOnly (204)
+POST {{baseUrl}}/api/v1/auth/token
+Content-Type: application/x-www-form-urlencoded
+
+username={{email}}&password={{clave}}
+
+### Consultar perfil con rol user (200)
+GET {{baseUrl}}/api/v1/auth/me
+
+### Leer productos (200)
+GET {{baseUrl}}/productos/
+
+### Escritura de un user (403)
+POST {{baseUrl}}/categorias/
+Content-Type: application/json
+
+{"nombre":"Categoría de prueba"}
+
+### Acceso a la administración como user (403)
+GET {{baseUrl}}/api/v1/auth/admin/usuarios
+
+### Login administrador (204)
+POST {{baseUrl}}/api/v1/auth/token
+Content-Type: application/x-www-form-urlencoded
+
+username={{adminEmail}}&password={{adminPassword}}
+
+### Listar usuarios (200)
+GET {{baseUrl}}/api/v1/auth/admin/usuarios
+
+### Desactivar al cliente (200)
+POST {{baseUrl}}/api/v1/auth/admin/usuarios/{{cliente.response.body.$.id}}/desactivar
+
+### Login de una cuenta desactivada (400)
+POST {{baseUrl}}/api/v1/auth/token
+Content-Type: application/x-www-form-urlencoded
+
+username={{email}}&password={{clave}}
+
+### Reactivar al cliente (200)
+POST {{baseUrl}}/api/v1/auth/admin/usuarios/{{cliente.response.body.$.id}}/activar
+
+### Login cliente reactivado (204)
+POST {{baseUrl}}/api/v1/auth/token
+Content-Type: application/x-www-form-urlencoded
+
+username={{email}}&password={{clave}}
+
+### Cerrar sesión (204)
+POST {{baseUrl}}/api/v1/auth/logout
+
+### Perfil tras cerrar sesión (401)
+GET {{baseUrl}}/api/v1/auth/me

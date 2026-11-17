@@ -1,0 +1,170 @@
+# Ejecutar en orden. Los bloques con @name guardan los IDs de las altas.
+# Usar una base de prueba. La baja lógica conserva los productos y detalles del pedido.
+@baseUrl = http://localhost:8000
+@adminEmail = admin@foodstore.com
+@adminPassword = REEMPLAZAR_CON_CLAVE_DE_PRUEBA
+
+### Iniciar sesión como administrador (204)
+POST {{baseUrl}}/api/v1/auth/token
+Content-Type: application/x-www-form-urlencoded
+
+username={{adminEmail}}&password={{adminPassword}}
+
+### Crear producto A (201)
+# @name productoA
+POST {{baseUrl}}/productos/
+Content-Type: application/json
+
+{
+  "nombre": "Limonada TP8",
+  "descripcion": "Bebida",
+  "precio_base": 125.5
+}
+
+### Crear producto B (201)
+# @name productoB
+POST {{baseUrl}}/productos/
+Content-Type: application/json
+
+{
+  "nombre": "Pan TP8",
+  "descripcion": "Pan casero",
+  "precio_base": 75
+}
+
+### Crear pedido PENDIENTE con dos detalles y total 326 (201)
+# @name pedido
+POST {{baseUrl}}/pedidos
+Content-Type: application/json
+
+{
+  "detalles": [
+    {
+      "producto_id": {{productoA.response.body.$.id}},
+      "cantidad": 2
+    },
+    {
+      "producto_id": {{productoB.response.body.$.id}},
+      "cantidad": 1
+    }
+  ]
+}
+
+### Listar pedidos activos (200)
+GET {{baseUrl}}/pedidos
+
+### Consultar el pedido y sus detalles (200)
+GET {{baseUrl}}/pedidos/{{pedido.response.body.$.id}}
+
+### Cambiar el precio de producto A (200)
+PUT {{baseUrl}}/productos/{{productoA.response.body.$.id}}
+Content-Type: application/json
+
+{
+  "nombre": "Limonada TP8",
+  "descripcion": "Bebida",
+  "precio_base": 300
+}
+
+### Verificar que el pedido conserva precio unitario 125.5 y total 326 (200)
+GET {{baseUrl}}/pedidos/{{pedido.response.body.$.id}}
+
+### Actualizar el estado a CONFIRMADO (200)
+PUT {{baseUrl}}/pedidos/{{pedido.response.body.$.id}}
+Content-Type: application/json
+
+{
+  "estado": "CONFIRMADO"
+}
+
+### Rechazar un estado inválido (422)
+PUT {{baseUrl}}/pedidos/{{pedido.response.body.$.id}}
+Content-Type: application/json
+
+{
+  "estado": "DESCONOCIDO"
+}
+
+### Rechazar un pedido sin detalles (422)
+POST {{baseUrl}}/pedidos
+Content-Type: application/json
+
+{
+  "detalles": []
+}
+
+### Rechazar una cantidad menor que uno (422)
+POST {{baseUrl}}/pedidos
+Content-Type: application/json
+
+{
+  "detalles": [
+    {
+      "producto_id": {{productoA.response.body.$.id}},
+      "cantidad": 0
+    }
+  ]
+}
+
+### Rechazar un producto repetido (422)
+POST {{baseUrl}}/pedidos
+Content-Type: application/json
+
+{
+  "detalles": [
+    {
+      "producto_id": {{productoA.response.body.$.id}},
+      "cantidad": 1
+    },
+    {
+      "producto_id": {{productoA.response.body.$.id}},
+      "cantidad": 2
+    }
+  ]
+}
+
+### Listado antes de la prueba de rollback (200)
+GET {{baseUrl}}/pedidos
+
+### Fallar después del primer detalle válido y revertir el alta (404)
+POST {{baseUrl}}/pedidos
+Content-Type: application/json
+
+{
+  "detalles": [
+    {
+      "producto_id": {{productoA.response.body.$.id}},
+      "cantidad": 1
+    },
+    {
+      "producto_id": 2147483647,
+      "cantidad": 1
+    }
+  ]
+}
+
+### Comparar con el listado anterior: mismos pedidos y totales (200)
+GET {{baseUrl}}/pedidos
+
+### Consultar el pedido válido: conserva exactamente sus dos detalles (200)
+GET {{baseUrl}}/pedidos/{{pedido.response.body.$.id}}
+
+### Eliminar el pedido de forma lógica (204)
+DELETE {{baseUrl}}/pedidos/{{pedido.response.body.$.id}}
+
+### Comprobar que el listado ya no contiene el pedido eliminado (200)
+GET {{baseUrl}}/pedidos
+
+### Consultar el pedido eliminado (404)
+GET {{baseUrl}}/pedidos/{{pedido.response.body.$.id}}
+
+### Editar el pedido eliminado (404)
+PUT {{baseUrl}}/pedidos/{{pedido.response.body.$.id}}
+Content-Type: application/json
+
+{
+  "estado": "ENTREGADO"
+}
+
+### Repetir la baja del pedido eliminado (404)
+DELETE {{baseUrl}}/pedidos/{{pedido.response.body.$.id}}

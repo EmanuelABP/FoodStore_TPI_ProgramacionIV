@@ -1,0 +1,111 @@
+# Ejecutar en orden. El ID del ingrediente se toma de la respuesta del alta.
+@baseUrl = http://localhost:8000
+@adminEmail = admin@foodstore.com
+@adminPassword = REEMPLAZAR_CON_CLAVE_DE_PRUEBA
+
+### Iniciar sesión como administrador (204)
+POST {{baseUrl}}/api/v1/auth/token
+Content-Type: application/x-www-form-urlencoded
+
+username={{adminEmail}}&password={{adminPassword}}
+
+### Listar ingredientes (200)
+GET {{baseUrl}}/ingredientes
+
+### Crear ingrediente (201)
+# @name ingrediente
+POST {{baseUrl}}/ingredientes
+Content-Type: application/json
+
+{
+  "nombre": "  Limón  "
+}
+
+### Editar ingrediente (200)
+PUT {{baseUrl}}/ingredientes/{{ingrediente.response.body.$.id}}
+Content-Type: application/json
+
+{
+  "nombre": "Limón amarillo"
+}
+
+### Rechazar nombre compuesto por espacios (422)
+POST {{baseUrl}}/ingredientes
+Content-Type: application/json
+
+{
+  "nombre": "   "
+}
+
+### Rechazar nombre vacío al editar (422)
+PUT {{baseUrl}}/ingredientes/{{ingrediente.response.body.$.id}}
+Content-Type: application/json
+
+{
+  "nombre": ""
+}
+
+### Listar ingredientes y comprobar la edición (200)
+GET {{baseUrl}}/ingredientes
+
+### Eliminar ingrediente (204)
+DELETE {{baseUrl}}/ingredientes/{{ingrediente.response.body.$.id}}
+
+### Volver a eliminar el ingrediente (404)
+DELETE {{baseUrl}}/ingredientes/{{ingrediente.response.body.$.id}}
+
+### Editar un ingrediente inexistente (404)
+PUT {{baseUrl}}/ingredientes/{{ingrediente.response.body.$.id}}
+Content-Type: application/json
+
+{
+  "nombre": "Limón"
+}
+
+### Crear ingrediente para comprobar unicidad (201)
+# @name ingUnico
+POST {{baseUrl}}/ingredientes
+Content-Type: application/json
+
+{
+  "nombre": "Ajo   negro"
+}
+
+### Rechazar nombre duplicado normalizado (409)
+POST {{baseUrl}}/ingredientes
+Content-Type: application/json
+
+{
+  "nombre": " AJO NEGRO "
+}
+
+### Crear otro ingrediente (201)
+# @name ingEdicion
+POST {{baseUrl}}/ingredientes
+Content-Type: application/json
+
+{
+  "nombre": "Perejil"
+}
+
+### Rechazar duplicado al editar (409)
+PUT {{baseUrl}}/ingredientes/{{ingEdicion.response.body.$.id}}
+Content-Type: application/json
+
+{
+  "nombre": "  ajo negro  "
+}
+
+### Dar de baja el primer ingrediente (204)
+DELETE {{baseUrl}}/ingredientes/{{ingUnico.response.body.$.id}}
+
+### Reutilizar el nombre normalizado del ingrediente dado de baja (200)
+PUT {{baseUrl}}/ingredientes/{{ingEdicion.response.body.$.id}}
+Content-Type: application/json
+
+{
+  "nombre": "Ajo negro"
+}
+
+### Dar de baja el segundo ingrediente (204)
+DELETE {{baseUrl}}/ingredientes/{{ingEdicion.response.body.$.id}}

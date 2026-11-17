@@ -1,0 +1,385 @@
+# Ejecutar en orden. Los bloques con @name guardan los IDs de las altas.
+@baseUrl = http://localhost:8000
+@adminEmail = admin@foodstore.com
+@adminPassword = REEMPLAZAR_CON_CLAVE_DE_PRUEBA
+@lote = tp8-corregido
+
+### Iniciar sesión como administrador (204)
+POST {{baseUrl}}/api/v1/auth/token
+Content-Type: application/x-www-form-urlencoded
+
+username={{adminEmail}}&password={{adminPassword}}
+
+### Listar categorías (200)
+GET {{baseUrl}}/categorias/
+
+### Crear categoría (201)
+# @name categoria
+POST {{baseUrl}}/categorias/
+Content-Type: application/json
+
+{
+  "nombre": "Bebidas {{lote}}",
+  "descripcion": "Bebidas frías"
+}
+
+### Consultar categoría (200)
+GET {{baseUrl}}/categorias/{{categoria.response.body.$.id}}
+
+### Editar categoría (200)
+PUT {{baseUrl}}/categorias/{{categoria.response.body.$.id}}
+Content-Type: application/json
+
+{
+  "nombre": "Bebidas {{lote}}",
+  "descripcion": "Bebidas frías y calientes"
+}
+
+### Categoría inexistente (404)
+GET {{baseUrl}}/categorias/2147483647
+
+### Listar productos (200)
+GET {{baseUrl}}/productos/
+
+### Crear producto (201)
+# @name producto
+POST {{baseUrl}}/productos/
+Content-Type: application/json
+
+{
+  "nombre": "Limonada",
+  "descripcion": "Jugo natural",
+  "precio_base": 1500.5,
+  "imagenes_url": [
+    "https://example.com/limonada.jpg"
+  ],
+  "disponible": true
+}
+
+### Consultar producto (200)
+GET {{baseUrl}}/productos/{{producto.response.body.$.id}}
+
+### Editar producto (200)
+PUT {{baseUrl}}/productos/{{producto.response.body.$.id}}
+Content-Type: application/json
+
+{
+  "nombre": "Limonada",
+  "descripcion": "Jugo natural con menta",
+  "precio_base": 1750,
+  "imagenes_url": [
+    "https://example.com/limonada-menta.jpg"
+  ],
+  "disponible": false
+}
+
+### Rechazar precio negativo (422)
+POST {{baseUrl}}/productos/
+Content-Type: application/json
+
+{
+  "nombre": "Inválido",
+  "descripcion": "Precio negativo",
+  "precio_base": -1
+}
+
+### Asociar categoría (201)
+POST {{baseUrl}}/productos/{{producto.response.body.$.id}}/categorias
+Content-Type: application/json
+
+{
+  "categoria_id": {{categoria.response.body.$.id}}
+}
+
+### Listar categorías del producto (200)
+GET {{baseUrl}}/productos/{{producto.response.body.$.id}}/categorias
+
+### Rechazar asociación repetida (409)
+POST {{baseUrl}}/productos/{{producto.response.body.$.id}}/categorias
+Content-Type: application/json
+
+{
+  "categoria_id": {{categoria.response.body.$.id}}
+}
+
+### Quitar asociación (204)
+DELETE {{baseUrl}}/productos/{{producto.response.body.$.id}}/categorias/{{categoria.response.body.$.id}}
+
+### Comprobar listado de categorías vacío (200)
+GET {{baseUrl}}/productos/{{producto.response.body.$.id}}/categorias
+
+### Eliminar producto (204)
+DELETE {{baseUrl}}/productos/{{producto.response.body.$.id}}
+
+### Comprobar baja de producto (404)
+GET {{baseUrl}}/productos/{{producto.response.body.$.id}}
+
+### Eliminar categoría (204)
+DELETE {{baseUrl}}/categorias/{{categoria.response.body.$.id}}
+
+### Comprobar baja de categoría (404)
+GET {{baseUrl}}/categorias/{{categoria.response.body.$.id}}
+
+### Crear categoría sin descripción (201)
+# @name catCorreccion
+POST {{baseUrl}}/categorias/
+Content-Type: application/json
+
+{
+  "nombre": "Bebidas   caseras {{lote}}"
+}
+
+### Rechazar categoría duplicada normalizada (409)
+POST {{baseUrl}}/categorias/
+Content-Type: application/json
+
+{
+  "nombre": "  BEBIDAS CASERAS {{lote}}  "
+}
+
+### Crear otra categoría (201)
+# @name catOtra
+POST {{baseUrl}}/categorias/
+Content-Type: application/json
+
+{
+  "nombre": "Bebidas cítricas {{lote}}"
+}
+
+### Rechazar categoría duplicada en edición (409)
+PUT {{baseUrl}}/categorias/{{catOtra.response.body.$.id}}
+Content-Type: application/json
+
+{
+  "nombre": "bebidas caseras {{lote}}"
+}
+
+### Buscar y paginar categorías (200)
+GET {{baseUrl}}/categorias/?nombre=BEBIDAS&offset=1&limit=1
+
+### Rechazar límite inválido de categorías (422)
+GET {{baseUrl}}/categorias/?limit=0
+
+### Crear ingrediente para asociar (201)
+# @name ingCorreccionA
+POST {{baseUrl}}/ingredientes
+Content-Type: application/json
+
+{
+  "nombre": "Menta {{lote}}"
+}
+
+### Crear segundo ingrediente para reemplazar (201)
+# @name ingCorreccionB
+POST {{baseUrl}}/ingredientes
+Content-Type: application/json
+
+{
+  "nombre": "Pomelo {{lote}}"
+}
+
+### Crear producto con ingrediente (201)
+# @name prodCorreccion
+POST {{baseUrl}}/productos/
+Content-Type: application/json
+
+{
+  "nombre": "Té   frío {{lote}}",
+  "descripcion": "Prueba de asociaciones",
+  "precio_base": 150,
+  "ingrediente_ids": [
+    {{ingCorreccionA.response.body.$.id}}
+  ]
+}
+
+### Rechazar producto duplicado normalizado (409)
+POST {{baseUrl}}/productos/
+Content-Type: application/json
+
+{
+  "nombre": "  TÉ FRÍO {{lote}} ",
+  "descripcion": "Prueba de asociaciones",
+  "precio_base": 150,
+  "ingrediente_ids": [
+    {{ingCorreccionB.response.body.$.id}}
+  ]
+}
+
+### Rechazar ingrediente repetido (422)
+POST {{baseUrl}}/productos/
+Content-Type: application/json
+
+{
+  "nombre": "Inválido {{lote}}",
+  "descripcion": "Prueba de asociaciones",
+  "precio_base": 150,
+  "ingrediente_ids": [
+    {{ingCorreccionA.response.body.$.id}},
+    {{ingCorreccionA.response.body.$.id}}
+  ]
+}
+
+### Rechazar ingrediente inexistente (404)
+POST {{baseUrl}}/productos/
+Content-Type: application/json
+
+{
+  "nombre": "Inválido {{lote}}",
+  "descripcion": "Prueba de asociaciones",
+  "precio_base": 150,
+  "ingrediente_ids": [
+    {{ingCorreccionA.response.body.$.id}},
+    2147483647
+  ]
+}
+
+### Crear segundo producto (201)
+# @name prodOtro
+POST {{baseUrl}}/productos/
+Content-Type: application/json
+
+{
+  "nombre": "Té negro {{lote}}",
+  "descripcion": "Prueba de asociaciones",
+  "precio_base": 150,
+  "ingrediente_ids": [
+    {{ingCorreccionB.response.body.$.id}}
+  ]
+}
+
+### Rechazar edición duplicada sin cambiar ingredientes (409)
+PUT {{baseUrl}}/productos/{{prodOtro.response.body.$.id}}
+Content-Type: application/json
+
+{
+  "nombre": "Té frío {{lote}}",
+  "descripcion": "Prueba de asociaciones",
+  "precio_base": 150,
+  "ingrediente_ids": [
+    {{ingCorreccionA.response.body.$.id}}
+  ]
+}
+
+### Consultar segundo producto sin cambios: conserva el segundo ingrediente (200)
+GET {{baseUrl}}/productos/{{prodOtro.response.body.$.id}}
+
+### Paginar productos con un filtro por nombre (200)
+GET {{baseUrl}}/productos/?nombre=T%C3%89&offset=1&limit=1
+
+### Rechazar offset inválido (422)
+GET {{baseUrl}}/productos/?offset=-1
+
+### Reemplazar ingredientes del primer producto (200)
+PUT {{baseUrl}}/productos/{{prodCorreccion.response.body.$.id}}
+Content-Type: application/json
+
+{
+  "nombre": "Té frío {{lote}}",
+  "descripcion": "Prueba de asociaciones",
+  "precio_base": 150,
+  "ingrediente_ids": [
+    {{ingCorreccionB.response.body.$.id}}
+  ]
+}
+
+### Conservar ingredientes al editar sin ingrediente_ids (200)
+PUT {{baseUrl}}/productos/{{prodCorreccion.response.body.$.id}}
+Content-Type: application/json
+
+{
+  "nombre": "Té frío {{lote}}",
+  "descripcion": "Prueba de asociaciones",
+  "precio_base": 150
+}
+
+### Consultar ingredientes persistidos (200)
+GET {{baseUrl}}/productos/{{prodCorreccion.response.body.$.id}}
+
+### Asociar una categoría por la ruta del TP8 (201)
+POST {{baseUrl}}/productos/{{prodCorreccion.response.body.$.id}}/categorias
+Content-Type: application/json
+
+{
+  "categoria_id": {{catCorreccion.response.body.$.id}}
+}
+
+### Consultar categorías del producto (200)
+GET {{baseUrl}}/productos/{{prodCorreccion.response.body.$.id}}/categorias
+
+### Impedir la baja de categoría vinculada con producto vigente (409)
+DELETE {{baseUrl}}/categorias/{{catCorreccion.response.body.$.id}}
+
+### Dar de baja ingrediente vinculado conservando historial (204)
+DELETE {{baseUrl}}/ingredientes/{{ingCorreccionB.response.body.$.id}}
+
+### Consultar producto con su referencia histórica (200)
+GET {{baseUrl}}/productos/{{prodCorreccion.response.body.$.id}}
+
+### Rechazar un vínculo nuevo a ingrediente dado de baja (404)
+POST {{baseUrl}}/productos/
+Content-Type: application/json
+
+{
+  "nombre": "Inválido {{lote}}",
+  "descripcion": "Prueba de asociaciones",
+  "precio_base": 150,
+  "ingrediente_ids": [
+    {{ingCorreccionB.response.body.$.id}}
+  ]
+}
+
+### Dar de baja producto sin borrar asociaciones (204)
+DELETE {{baseUrl}}/productos/{{prodCorreccion.response.body.$.id}}
+
+### Consultar producto dado de baja (404)
+GET {{baseUrl}}/productos/{{prodCorreccion.response.body.$.id}}
+
+### Repetir baja de producto (404)
+DELETE {{baseUrl}}/productos/{{prodCorreccion.response.body.$.id}}
+
+### Dar de baja categoría con vínculo histórico (204)
+DELETE {{baseUrl}}/categorias/{{catCorreccion.response.body.$.id}}
+
+### Consultar categoría dada de baja (404)
+GET {{baseUrl}}/categorias/{{catCorreccion.response.body.$.id}}
+
+### Incluir categorías dadas de baja con fecha (200)
+GET {{baseUrl}}/categorias/?incluir_inactivos=true&nombre=caseras&limit=5
+
+### Excluir categorías dadas de baja de la búsqueda normal (200)
+GET {{baseUrl}}/categorias/?nombre=caseras&limit=5
+
+### Reutilizar nombre de producto dado de baja (201)
+# @name prodReutilizado
+POST {{baseUrl}}/productos/
+Content-Type: application/json
+
+{
+  "nombre": "Té frío {{lote}}",
+  "descripcion": "Prueba de asociaciones",
+  "precio_base": 150
+}
+
+### Reutilizar nombre de categoría dada de baja (201)
+# @name catReutilizada
+POST {{baseUrl}}/categorias/
+Content-Type: application/json
+
+{
+  "nombre": "Bebidas caseras {{lote}}"
+}
+
+### Dar de baja el producto nuevo (204)
+DELETE {{baseUrl}}/productos/{{prodReutilizado.response.body.$.id}}
+
+### Dar de baja el segundo producto (204)
+DELETE {{baseUrl}}/productos/{{prodOtro.response.body.$.id}}
+
+### Dar de baja la categoría nueva (204)
+DELETE {{baseUrl}}/categorias/{{catReutilizada.response.body.$.id}}
+
+### Dar de baja la segunda categoría (204)
+DELETE {{baseUrl}}/categorias/{{catOtra.response.body.$.id}}
+
+### Dar de baja el primer ingrediente (204)
+DELETE {{baseUrl}}/ingredientes/{{ingCorreccionA.response.body.$.id}}

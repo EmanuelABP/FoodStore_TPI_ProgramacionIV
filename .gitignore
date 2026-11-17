@@ -1,0 +1,71 @@
+
+# ==========================================
+# FOOD STORE - TPI PROGRAMACION IV
+# ==========================================
+
+# Python - Entornos virtuales
+.venv/
+venv/
+env/
+ENV/
+
+# Python - Cache y archivos compilados
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+build/
+
+# Python - Herramientas y pruebas
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.tox/
+.nox/
+.coverage
+.coverage.*
+htmlcov/
+
+# Bases de datos locales generadas
+*.db
+*.sqlite
+*.sqlite3
+
+# Node.js / React / Vite
+node_modules/
+dist/
+dist-ssr/
+.vite/
+.cache/
+coverage/
+*.tsbuildinfo
+
+# Variables de entorno y credenciales
+**/.env
+**/.env.*
+!**/.env.example
+
+# Logs
+*.log
+logs/
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+
+# Archivos locales de editores
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Archivos del sistema operativo
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Copias y archivos comprimidos
+*.zip
+*.bak
+*.tmp
+*.temp
