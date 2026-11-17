@@ -54,4 +54,4 @@ En los listados de productos y categorías puedo pedir páginas con `offset`, `l
 
 ## Pruebas con REST Client
 
-Abro [auth.http](auth.http) y ejecuto las solicitudes en orden. Completo las credenciales de prueba en mi copia local y mantengo habilitada la conservación de cookies entre solicitudes. El bloque de login administrador se usa también al inicio de [productos.http](productos.http), [ingredientes.http](ingredientes.http) y [pedidos.http](pedidos.http). Si ya tengo datos de esas pruebas, uso una base de prueba separada para repetir las secuencias completas.
+Abro [auth.http](http/auth.http) y ejecuto las solicitudes en orden. Completo las credenciales de prueba en mi copia local y mantengo habilitada la conservación de cookies entre solicitudes. El bloque de login administrador se usa también al inicio de [productos.http](http/productos.http), [ingredientes.http](http/ingredientes.http) y [pedidos.http](http/pedidos.http). Si ya tengo datos de esas pruebas, uso una base de prueba separada para repetir las secuencias completas.
