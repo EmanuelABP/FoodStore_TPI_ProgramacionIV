@@ -1,15 +1,11 @@
 
-import os
-from pathlib import Path
+from collections.abc import Generator
 
-from dotenv import load_dotenv
 from sqlmodel import SQLModel, Session, create_engine
 
-# Cargar las variables de entorno desde backend/.env
-BASE_DIR = Path(__file__).resolve().parents[2]
-load_dotenv(BASE_DIR / ".env")
+from app.core.config import settings
 
-DATABASE_URL = os.getenv("DATABASE_URL")
+DATABASE_URL = settings.DATABASE_URL
 
 if not DATABASE_URL:
     raise RuntimeError(
@@ -19,8 +15,12 @@ if not DATABASE_URL:
 engine = create_engine(DATABASE_URL, echo=False)
 
 
-def get_session():
-    with Session(engine) as session:
+def session_factory() -> Session:
+    return Session(engine)
+
+
+def get_session() -> Generator[Session, None, None]:
+    with session_factory() as session:
         yield session
 
 
