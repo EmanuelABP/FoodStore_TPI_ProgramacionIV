@@ -5,33 +5,42 @@
 
 [Guía del backend](backend/README.md) · [Guía del frontend](frontend/README.md)
 
-Food Store es un sistema de catálogo y pedidos para un local de comidas. El TPI se desarrolla a partir del backend del TP9 y del frontend del TP10.
+Food Store es una tienda de comidas con catálogo público, carrito y pedidos. Los clientes pueden comprar y consultar sus pedidos. El panel de administración permite gestionar el catálogo, el stock, los usuarios y los pedidos.
 
-- **Backend.** Python, FastAPI, Pydantic y SQLModel sobre PostgreSQL.
+- **Backend.** Python, FastAPI, Pydantic y SQLModel sobre PostgreSQL. Usa JWT en cookie HttpOnly.
 - **Frontend.** React 19, TypeScript estricto, Vite, Tailwind CSS 4, Axios, TanStack Query, Form y Table, React Router y Zustand.
 
-## Estado del proyecto
-
-La infraestructura incluye configuración desde `.env`, una fábrica de sesiones y las clases compartidas `BaseRepository[T]` y `UnitOfWork`. La autenticación usa nombre de usuario, JWT en cookie HttpOnly y los roles `user` y `admin`.
-
-El catálogo público permite buscar productos por nombre, filtrar por categoría y recorrer páginas consultadas al servidor. El botón **Agregar al carrito** guarda la selección al recargar. Los administradores pueden gestionar usuarios, categorías y productos, y actualizar stock y disponibilidad. Las bajas del catálogo son lógicas.
+## Rutas y permisos
 
 | Ruta | Acceso y funcionalidad |
 |---|---|
-| `/` | Público. Catálogo, búsqueda, filtro, paginación y agregado al carrito. |
-| `/login`, `/register` | Público. Inicio de sesión y registro. |
+| `/` | Público. Catálogo con búsqueda, filtro por categoría, paginación y agregado al carrito. |
+| `/login`, `/register` | Público. Inicio de sesión por nombre de usuario y registro. |
+| `/carrito` | Público. Cantidades, subtotales y total. El carrito se guarda en el navegador. |
+| `/checkout` | Sesión activa. Confirmación del pedido con datos de entrega y pago. |
+| `/mis-pedidos` | Sesión activa. Pedidos propios, detalle y cancelación en estado pendiente. |
 | `/admin/categorias` | Admin. Alta, edición y baja lógica de categorías. |
 | `/admin/productos` | Admin. Alta, edición, baja lógica y ajuste de stock y disponibilidad. |
 | `/admin/usuarios` | Admin. Listado, activación y desactivación de cuentas. |
+| `/admin/pedidos` | Admin. Listado, filtros, detalle y cambios de estado. |
+| `/admin/resumen` | Admin. Conteos por estado, pedidos del día e ingresos de pedidos entregados. |
+| `/unauthorized` | Público. Aviso de acceso denegado. |
 
-Quedan pendientes la página del carrito, el checkout, la adaptación de pedidos al TPI y el resumen administrativo.
+El recorrido de compra es **Catálogo → Carrito → Inicio de sesión, si hace falta → Checkout → Mis pedidos**. El carrito se conserva al recargar y al iniciar sesión. Se vacía cuando la API confirma el pedido.
+
+### Pedidos, stock y cancelación
+
+Al confirmar, el backend valida que cada producto esté activo, disponible y tenga stock suficiente. El pedido nace en `PENDIENTE`. El alta y el descuento de stock ocurren en una sola transacción. Las líneas guardan el nombre y el precio del producto en el momento de la compra, y el total queda fijo. Los medios de pago disponibles son `EFECTIVO` y `TRANSFERENCIA`.
+
+Un cliente puede cancelar un pedido propio en `PENDIENTE`. El administrador puede avanzar de `PENDIENTE` a `EN_PREPARACION` y luego a `ENTREGADO`, o pasar desde cualquiera de los dos estados anteriores a `CANCELADO`. La cancelación repone el stock en la misma transacción. `ENTREGADO` y `CANCELADO` son estados terminales. Los pedidos se conservan en la base.
 
 ## Estructura del repositorio
 
 - `backend/app/core/` reúne la configuración, las sesiones y las clases compartidas de persistencia.
-- `backend/app/modules/` contiene autenticación, usuarios, categorías, productos y el módulo heredado de pedidos.
+- `backend/app/modules/` contiene autenticación, usuarios, categorías, productos y pedidos.
 - `backend/app/db/` contiene el seed. `backend/http/` reúne las solicitudes de REST Client.
-- `frontend/src/` organiza la interfaz por funcionalidades y contiene las rutas, los componentes compartidos y los stores de Zustand.
+- `frontend/src/features/` agrupa autenticación y usuarios, categorías, productos y pedidos.
+- `frontend/src/routes/` contiene la navegación y sus permisos. `frontend/src/shared/` reúne el cliente HTTP y los componentes comunes, y `frontend/src/store/` guarda carrito, tema y avisos.
 
 ## Requisitos
 
@@ -39,13 +48,13 @@ Quedan pendientes la página del carrito, el checkout, la adaptación de pedidos
 - **PostgreSQL 15 o superior**, iniciado y accesible con un usuario local. Podés usar pgAdmin para crear la base.
 - **Node.js 24 y pnpm 9 o superior.** Node.js 24 es la versión recomendada para cubrir los requisitos de Vite y ESLint del lockfile actual.
 
-Los comandos están escritos para PowerShell. Usá una terminal para el backend y otra para el frontend.
+Si descargaste el proyecto en ZIP, descomprimilo y abrí PowerShell en la carpeta que contiene `backend/` y `frontend/`. Usá una terminal para el backend y otra para el frontend.
 
 ## Instalación y ejecución del [backend](backend/README.md)
 
 ### Paso 1. Entrar a la carpeta del backend · obligatorio
 
-Desde la raíz de `FoodStore_TPI_ProgramacionIV`, entrá a la carpeta del backend.
+Desde la carpeta raíz del proyecto, entrá a la carpeta del backend.
 
 ```powershell
 Set-Location .\backend
@@ -79,7 +88,7 @@ python -m pip install -r requirements.txt
 
 Si todavía no tenés PostgreSQL, descargá el [instalador oficial para Windows](https://www.postgresql.org/download/windows/) e instalá el servidor y pgAdmin. Durante la instalación, definí la contraseña local del usuario `postgres` y anotá el puerto elegido, que por defecto es `5432`.
 
-Con el servicio iniciado, abrí pgAdmin y conectate al servidor local con ese usuario. Sobre **Databases**, elegí **Create → Database**, poné `foodstore_tpi` como nombre y seleccioná como propietario el usuario que va a usar la API. Si ya existe una base con ese nombre, elegí otro y usalo en `DATABASE_URL`. El seed crea las tablas faltantes en la base vacía. Para esta instalación usá una base nueva, porque las tablas de versiones anteriores requieren otro esquema.
+Con el servicio iniciado, abrí pgAdmin y conectate al servidor local con ese usuario. Sobre **Databases**, elegí **Create → Database**, poné `foodstore_tpi` como nombre y seleccioná como propietario el usuario que va a usar la API. Si ya existe una base con ese nombre, elegí otro y usalo en `DATABASE_URL`. El seed crea las tablas en la base vacía. Usá una base nueva si venís de una versión anterior, porque la creación de tablas no actualiza el esquema existente.
 
 ### Paso 6. Configurar el archivo `.env` · obligatorio
 
@@ -139,7 +148,7 @@ Dejá la terminal abierta y entrá en [Swagger](http://localhost:8000/docs) para
 
 ### Paso 1. Abrir una segunda terminal · obligatorio
 
-Dejá el backend en ejecución. Desde la raíz de `FoodStore_TPI_ProgramacionIV`, entrá a la carpeta del frontend.
+Dejá el backend en ejecución. Desde la carpeta raíz del proyecto, entrá a la carpeta del frontend.
 
 ```powershell
 Set-Location .\frontend
@@ -153,15 +162,15 @@ Desde `frontend/`, instalá las versiones registradas en `pnpm-lock.yaml`.
 pnpm install --frozen-lockfile
 ```
 
-### Paso 3. Configurar la URL de la API · opcional en local
+### Paso 3. Configurar la URL de la API
 
-Desde `frontend/`, copiá el ejemplo si necesitás definir la URL. Con la configuración local predeterminada podés omitir este paso. Si ya existe `.env`, editalo y reiniciá Vite para aplicar el cambio.
+Desde `frontend/`, copiá `.env.example` a `.env`. Si `.env` ya existe, revisá el valor y reiniciá Vite después de editarlo.
 
 ```powershell
 if (-not (Test-Path -LiteralPath .env)) { Copy-Item -LiteralPath .env.example -Destination .env }
 ```
 
-`frontend/.env.example` contiene este valor. Conservá el sufijo `/api/v1` si cambiás el host o el puerto.
+El ejemplo usa esta URL, que coincide con el valor predeterminado de Axios. Conservá el sufijo `/api/v1` si cambiás el host o el puerto.
 
 ```dotenv
 VITE_API_URL=http://localhost:8000/api/v1
@@ -194,19 +203,22 @@ Abrí [Food Store](http://localhost:5173) para recorrer el catálogo sin iniciar
 | `ALGORITHM` | Algoritmo JWT de firma y validación. El ejemplo usa `HS256`. |
 | `ACCESS_TOKEN_EXPIRE_MINUTES` | Duración de la sesión. El ejemplo usa 30 minutos. |
 | `FRONTEND_ORIGIN` | Origen del frontend autorizado para CORS. El ejemplo usa `http://localhost:5173`. |
-| `FRONTEND_ORIGINS` | Lista heredada, separada por comas. Si está definida, tiene prioridad sobre `FRONTEND_ORIGIN`. |
+| `FRONTEND_ORIGINS` | Lista opcional, separada por comas. Si está definida, tiene prioridad sobre `FRONTEND_ORIGIN`. |
 | `COOKIE_SECURE` | Usá `false` para desarrollo local con HTTP y `true` con HTTPS. |
 | `VITE_API_URL` | URL base de la API que consume Vite. El ejemplo usa `http://localhost:8000/api/v1`. Es opcional en el entorno local predeterminado. |
 
 ## Historial e hitos
 
 - **`base-tp9-tp10`.** Base integrada de los dos trabajos prácticos.
-- **Etapa 1 · Infraestructura (`tpi-infra`).** Configuración, fábrica de sesiones, repositorio y Unit of Work comunes, y documentación de arranque.
-- **Etapa 2 · Autenticación y usuarios (`tpi-auth`).** Registro, inicio de sesión y administración de usuarios integrados con la interfaz.
-- **Etapa 3 · Catálogo.** API, catálogo público, administración de categorías y productos y carga inicial con stock. Próximo hito `tpi-catalogo`.
+- **`tpi-infra`.** Configuración, fábrica de sesiones, repositorio y Unit of Work comunes.
+- **`tpi-auth`.** Registro, inicio de sesión y administración de usuarios.
+- **`tpi-catalogo`.** Catálogo público, administración de categorías y productos, y seed con stock inicial.
+- **Etapa de pedidos.** Backend transaccional en `4be7f16`. Carrito, checkout, pedidos y panel de administración en `0cf74e0`. El cierre con `tpi-pedidos` está pendiente.
 
 El código está en el [repositorio público de Food Store](https://github.com/EmanuelABP/FoodStore_TPI_ProgramacionIV).
 
-## Video de demostración
+## Estado de la entrega
 
-Enlace pendiente hasta que esté disponible el video definitivo.
+En las pruebas de esta etapa se ejecutó el seed dos veces en PostgreSQL y se completaron las 67 solicitudes de [pedidos.http](backend/http/pedidos.http). También se comprobó desde React el recorrido completo con FastAPI y PostgreSQL, incluidos el cambio de estado, la cancelación administrativa, la restitución del stock y la consulta del resumen. Los pedidos y los importes de esas pruebas dependen de la base utilizada.
+
+Quedan pendientes el ZIP final, la instalación desde cero a partir de ese ZIP y el enlace al video de demostración.

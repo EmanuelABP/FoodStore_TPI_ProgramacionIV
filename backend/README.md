@@ -5,19 +5,36 @@
 
 [README principal](../README.md) · [Guía del frontend](../frontend/README.md)
 
-## Estado del backend
+## Arquitectura y modelo de datos
 
-La API está desarrollada con FastAPI, Pydantic y SQLModel sobre PostgreSQL. `Settings` lee la configuración de `.env` y `session_factory()` abre las sesiones. Los módulos `auth`, `usuarios`, `categorias` y `productos` están adaptados al TPI.
+La API usa FastAPI, Pydantic y SQLModel sobre PostgreSQL. El código se organiza en los módulos `auth`, `usuarios`, `categorias`, `productos` y `pedidos` dentro de `app/modules/`. El núcleo `app/core/` contiene la configuración, la fábrica de sesiones, la seguridad y las clases compartidas. `app/db/` contiene el seed y `http/` reúne las solicitudes de REST Client.
 
-En categorías y productos, el flujo es **Router → Service → Unit of Work → Repository → Model**. El router aplica permisos y traduce errores a respuestas HTTP. El servicio ejecuta las reglas de negocio dentro del Unit of Work, que comparte la sesión con los repositorios y confirma o revierte la transacción al salir. Los repositorios heredan de `BaseRepository[T]`. Los schemas separan la entrada y la salida de los modelos de tabla.
+En categorías, productos y pedidos, el flujo es **Router → Service → Unit of Work → Repository → Model**. El router aplica permisos y traduce errores a HTTP. El servicio ejecuta las reglas de negocio y construye la respuesta dentro del Unit of Work. Este abre la sesión, la comparte con los repositorios, hace commit o rollback y cierra la sesión. Los repositorios de dominio usan `BaseRepository[T]`. Los schemas separan los datos de entrada y salida de los modelos de tabla.
 
-La autenticación tiene un rol singular `user` o `admin` y usa `disabled` para el estado de la cuenta. Passlib y bcrypt protegen las contraseñas. Python-jose firma el JWT y FastAPI lo entrega en la cookie `access_token` con HttpOnly y SameSite=Lax. CORS permite credenciales desde orígenes explícitos.
+| Entidades SQLModel | Relación |
+|---|---|
+| `Categoria` y `Producto` | Una categoría agrupa productos mediante `Categoria.productos` y `Producto.categoria`. Cada producto tiene un `categoria_id`. |
+| `Usuario` y `Pedido` | Un usuario puede realizar varios pedidos mediante `Usuario.pedidos` y `Pedido.usuario`. |
+| `Pedido` y `DetallePedido` | Un pedido contiene sus líneas mediante `Pedido.items` y `DetallePedido.pedido`. |
+| `Producto` y `DetallePedido` | Una línea referencia un producto mediante `Producto.detalles` y `DetallePedido.producto`. |
 
-Cada producto pertenece a una categoría mediante `categoria_id`. La relación 1:N se define con `Categoria.productos` y `Producto.categoria`. Categorías y productos se dan de baja con `activo=false`. Una categoría inactiva se excluye del listado de categorías y conserva tanto su nombre como las relaciones con sus productos. Los productos activos de esa categoría siguen apareciendo en el catálogo público.
+La baja de categorías y productos usa `activo=false`. Una categoría inactiva conserva su nombre y sus relaciones. Sus productos activos siguen visibles en el catálogo. La desactivación de usuarios usa `disabled=true`. Los pedidos se conservan en la base y se cancelan mediante un cambio de estado.
+
+La autenticación utiliza los roles `user` y `admin`. Passlib y bcrypt protegen las contraseñas. Python-jose firma el JWT y FastAPI lo entrega en la cookie `access_token` con HttpOnly y SameSite=Lax. CORS permite credenciales desde orígenes explícitos.
 
 ## Instalación y ejecución en Windows
 
 Usá Python 3.11 a 3.13 y PostgreSQL 15 o superior. La guía usa Python 3.12 y PowerShell.
+
+Las dependencias directas están fijadas en [requirements.txt](requirements.txt). Cito las versiones del archivo para que sea fácil verificar la instalación.
+
+| Paquetes | Versiones |
+|---|---|
+| FastAPI con extra `standard` y Uvicorn | `0.163.2` y `0.54.0` |
+| SQLModel, SQLAlchemy y psycopg2-binary | `0.0.50`, `2.1.9` y `2.9.13` |
+| Pydantic, pydantic-settings y python-dotenv | `2.14.3`, `2.16.3` y `1.2.4` |
+| Passlib con extra `bcrypt`, bcrypt y python-jose con extra `cryptography` | `1.7.4`, `4.0.1` y `3.5.0` |
+| email-validator y python-multipart | `2.4.0` y `0.0.34` |
 
 ### Paso 1. Entrar a la carpeta del backend · obligatorio
 
@@ -55,7 +72,7 @@ python -m pip install -r requirements.txt
 
 Si todavía no tenés PostgreSQL, descargá el [instalador oficial para Windows](https://www.postgresql.org/download/windows/) e instalá el servidor y pgAdmin. Durante la instalación, definí la contraseña local del usuario `postgres` y anotá el puerto elegido, que por defecto es `5432`.
 
-Con el servicio iniciado, abrí pgAdmin y conectate al servidor local con ese usuario. Sobre **Databases**, elegí **Create → Database**, poné `foodstore_tpi` como nombre y seleccioná como propietario el usuario que va a usar la API. Si ya existe una base con ese nombre, elegí otro y usalo en `DATABASE_URL`. El seed crea las tablas faltantes en la base vacía. Para esta instalación usá una base nueva, porque las tablas de versiones anteriores requieren otro esquema.
+Con el servicio iniciado, abrí pgAdmin y conectate al servidor local con ese usuario. Sobre **Databases**, elegí **Create → Database**, poné `foodstore_tpi` como nombre y seleccioná como propietario el usuario que va a usar la API. Si ya existe una base con ese nombre, elegí otro y usalo en `DATABASE_URL`. El seed crea las tablas en la base vacía. Usá una base nueva si venís de una versión anterior, porque la creación de tablas no actualiza el esquema existente.
 
 ### Paso 6. Configurar el archivo `.env` · obligatorio
 
@@ -113,13 +130,15 @@ Dejá la terminal abierta y entrá en [Swagger](http://localhost:8000/docs) para
 
 ## Detalles de configuración
 
-`Settings` lee `backend/.env` mediante la ruta del proyecto. Las variables del entorno del proceso tienen prioridad sobre el archivo. La lista heredada `FRONTEND_ORIGINS`, cuando está definida, tiene prioridad sobre el origen singular `FRONTEND_ORIGIN`. Para usar solamente el origen singular, dejá la lista heredada sin definir.
+`Settings` lee `backend/.env` mediante la ruta del proyecto. Las variables del entorno del proceso tienen prioridad sobre el archivo. La lista opcional `FRONTEND_ORIGINS`, cuando está definida, tiene prioridad sobre el origen singular `FRONTEND_ORIGIN`. Para usar solamente el origen singular, dejá la lista sin definir.
 
 `ACCESS_TOKEN_EXPIRE_MINUTES` define la vigencia del token y la cookie. `ALGORITHM` selecciona el algoritmo de firma y validación JWT. El ejemplo usa `HS256`. Para HTTPS usá `COOKIE_SECURE=true`. En local, usá el mismo host `localhost` en FastAPI y Vite para que el navegador envíe la cookie de sesión.
 
 Para ejecutar la interfaz junto a la API, seguí la [guía del frontend](../frontend/README.md).
 
 ## Rutas principales
+
+### Autenticación y usuarios
 
 | Método y ruta | Acceso y respuesta |
 |---|---|
@@ -160,12 +179,30 @@ El listado devuelve productos activos e incluye su categoría en `categoria`. Ad
 
 El producto requiere nombre, precio base mayor o igual a cero y una categoría activa al crearlo o reasignarlo. El stock es entero y mayor o igual a cero. La descripción y la URL de imagen son opcionales. Las entradas inválidas devuelven 422. En operaciones administrativas, una sesión inválida devuelve 401, una cuenta desactivada devuelve 400 y un rol insuficiente devuelve 403.
 
-### Pedidos heredados
+### Pedidos
 
-El backend todavía registra `/pedidos` y `/pedidos/{pedido_id}` con el contrato heredado. Los catálogos autenticados de solo lectura `/api/v1/estados-pedido` y `/api/v1/formas-pago` acompañan ese módulo, y el seed conserva sus datos auxiliares. Las rutas definitivas, las reglas RN-01 a RN-06, la gestión transaccional de stock y el resumen de pedidos quedan pendientes.
+| Método y ruta | Acceso y respuesta |
+|---|---|
+| POST `/api/v1/pedidos` | Sesión activa. Crea un pedido propio. Devuelve 201 con `PedidoRead`, 404 por producto inexistente o inactivo, y 400 por stock insuficiente, producto no disponible o repetido. |
+| GET `/api/v1/pedidos` | Sesión activa. El rol `user` recibe sus pedidos y `admin` recibe todos. Devuelve 200 con `PedidosPaginados`. |
+| GET `/api/v1/pedidos/resumen` | Admin. Devuelve 200 con `ResumenPedidos`. |
+| GET `/api/v1/pedidos/{id}` | Dueño o admin. Devuelve 200 con `PedidoRead`, 404 si no existe y 403 si un usuario común consulta un pedido ajeno. |
+| PATCH `/api/v1/pedidos/{id}/estado` | Admin. Recibe `estado` y devuelve 200 con `PedidoRead`, 404 si no existe o 400 si la transición es inválida. |
+| PATCH `/api/v1/pedidos/{id}/cancelar` | Dueño del pedido. Devuelve 200 con `PedidoRead`, 404 si no existe, 403 si es ajeno y 400 si ya salió de `PENDIENTE`. |
+
+El listado recibe `skip` (0 por defecto), `limit` (20 por defecto y 100 como máximo) y `estado` opcional. Devuelve `total` e `items`. Los cuerpos o parámetros inválidos devuelven 422. Una ruta protegida devuelve 401 sin sesión válida y 400 si la cuenta está desactivada.
+
+- **RN-01 · Alta.** El cuerpo contiene `items` con `producto_id` y `cantidad`, más los datos de entrega y pago. El dueño se obtiene de la sesión. La API valida productos activos y disponibles, stock suficiente y ausencia de duplicados. Bloquea los productos, descuenta el stock y guarda las líneas y el total dentro de la misma transacción. Un error revierte la operación completa.
+- **RN-02 · Estados.** Desde `PENDIENTE` se puede pasar a `EN_PREPARACION` o `CANCELADO`. Desde `EN_PREPARACION` se puede pasar a `ENTREGADO` o `CANCELADO`. Los dos últimos estados son terminales.
+- **RN-03 · Cancelación.** El cambio a `CANCELADO` y la restitución del stock de cada línea se confirman juntos. El bloqueo del pedido evita restituir el stock dos veces.
+- **RN-04 · Permisos.** El usuario común ve sus pedidos y puede cancelar los propios en `PENDIENTE`. El administrador consulta todos y usa `/estado` para avanzar o cancelar pedidos en estados permitidos. Ambos roles pueden realizar pedidos propios.
+- **RN-05 · Historial.** El nombre y el precio unitario se copian del producto al comprar. El subtotal es el precio unitario por la cantidad y el total es la suma de subtotales. Se mantienen fijos. Los pedidos se conservan y su única modificación es el cambio de estado.
+- **RN-06 · Validaciones.** Cada pedido requiere al menos un ítem, cantidades enteras positivas, una dirección de 5 a 200 caracteres y un medio de pago `EFECTIVO` o `TRANSFERENCIA`. Las notas son opcionales.
+
+El resumen devuelve los conteos de los cuatro estados, los pedidos creados en el día UTC y los ingresos, que suman solo los totales de pedidos `ENTREGADO`.
 
 ## Pruebas con REST Client
 
-Con la API iniciada, abrí [auth.http](http/auth.http), [categorias.http](http/categorias.http) o [productos.http](http/productos.http) en VS Code con la extensión REST Client. Ejecutá cada secuencia en orden con **Send Request** y mantené habilitadas las cookies. Usá una base de prueba. Para repetir las altas de catálogo, cambiá `@lote` en el archivo correspondiente.
+Con la API iniciada y el seed cargado en una base de prueba, abrí [auth.http](http/auth.http), [categorias.http](http/categorias.http), [productos.http](http/productos.http) o [pedidos.http](http/pedidos.http) en VS Code con la extensión REST Client. Mantené habilitadas las cookies y ejecutá las solicitudes en orden con **Send Request**. Para repetir una secuencia de altas, cambiá `@lote` en el archivo correspondiente.
 
-[pedidos.http](http/pedidos.http) queda como referencia del módulo heredado. Sus solicitudes de login y preparación del catálogo usan contratos anteriores. La secuencia se actualizará con la adaptación de pedidos.
+El archivo de pedidos tiene 67 solicitudes. Cubre autenticación, permisos, descuento y restitución de stock, alta fallida con rollback, transiciones, historial de líneas y resumen. Cuando una solicitud usa un ID de otra respuesta, ejecutá primero la solicitud que lo genera. Los totales del resumen dependen de los pedidos que ya tenga la base de prueba.

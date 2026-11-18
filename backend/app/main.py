@@ -30,8 +30,9 @@ app = FastAPI(
         "API REST de Food Store para el Trabajo Práctico Integrador de Programación IV. "
         "Desarrollado por Emanuel Aaron Brahim Pollini, estudiante de la Tecnicatura "
         "Universitaria en Programación de la UTN. Autenticación, usuarios, categorías "
-        "y productos están adaptados al TPI. El módulo de pedidos conserva el contrato "
-        "heredado y queda pendiente de su adaptación definitiva."
+        "y productos están adaptados al TPI. El módulo de pedidos implementa "
+        "las reglas RN-01 a RN-06, con gestión transaccional de stock y "
+        "cancelaciones. La API usa FastAPI y SQLModel sobre PostgreSQL."
     ),
     version="1.0.0",
     lifespan=lifespan,

@@ -5,7 +5,7 @@
 
 [README principal](../README.md) · [Guía del backend](../backend/README.md)
 
-El frontend del TPI parte de la implementación del TP10. Está desarrollado con React 19, TypeScript en modo estricto, Vite y Tailwind CSS 4. Usa Axios, TanStack Query, Form y Table, React Router y Zustand.
+El frontend ofrece el catálogo, el recorrido de compra y el panel de administración. Está desarrollado con React 19, TypeScript en modo estricto, Vite y Tailwind CSS 4. Usa Axios, TanStack Query, Form y Table, React Router y Zustand.
 
 ## Preparar Node.js y pnpm
 
@@ -43,15 +43,15 @@ Desde `frontend/`, instalá las versiones registradas en `pnpm-lock.yaml`.
 pnpm install --frozen-lockfile
 ```
 
-### Paso 3. Configurar la URL de la API · opcional en local
+### Paso 3. Configurar la URL de la API
 
-Desde `frontend/`, copiá el ejemplo si necesitás definir la URL. Con la configuración local predeterminada podés omitir este paso. Si ya existe `.env`, editalo y reiniciá Vite para aplicar el cambio.
+Desde `frontend/`, copiá `.env.example` a `.env`. Si `.env` ya existe, revisá el valor y reiniciá Vite después de editarlo.
 
 ```powershell
 if (-not (Test-Path -LiteralPath .env)) { Copy-Item -LiteralPath .env.example -Destination .env }
 ```
 
-`frontend/.env.example` contiene este valor. Conservá el sufijo `/api/v1` si cambiás el host o el puerto.
+El ejemplo usa esta URL, que coincide con el valor predeterminado de Axios. Conservá el sufijo `/api/v1` si cambiás el host o el puerto.
 
 ```dotenv
 VITE_API_URL=http://localhost:8000/api/v1
@@ -80,24 +80,38 @@ Abrí [Food Store](http://localhost:5173) para recorrer el catálogo sin iniciar
 - `src/features/auth/` contiene autenticación y administración de usuarios.
 - `src/features/categories/` contiene la administración de categorías.
 - `src/features/products/` contiene el catálogo público y la administración de productos.
+- `src/features/pedidos/` reúne las páginas de carrito, checkout, pedidos y resumen, junto con sus componentes, hooks, API y tipos.
 - `src/shared/` reúne la instancia de Axios, sus interceptores y los componentes reutilizables.
 - `src/routes/` define la navegación y la protección por sesión y rol.
 - `src/store/` reúne el carrito, la preferencia de tema y las notificaciones. El store de autenticación vive en `src/features/auth/store/`.
 
 ## Funcionalidades
 
-### Catálogo público
+### Compra y pedidos propios
 
-En `/` se pueden consultar productos sin iniciar sesión, buscar por nombre y filtrar por categoría. La búsqueda, el filtro y la paginación se resuelven en la API. La página muestra un esqueleto de carga, un estado vacío o un mensaje de error cuando corresponde. Los productos activos de categorías dadas de baja siguen apareciendo. Los productos sin stock o no disponibles se muestran con su estado y con el botón de agregado deshabilitado.
+El flujo es **Catálogo → Carrito → Inicio de sesión, si hace falta → Checkout → Mis pedidos**.
 
-**Agregar al carrito** actualiza un store de Zustand persistido en el navegador. Cada línea guarda el ID del producto, su nombre, el precio unitario y la cantidad. El store permite quitar líneas, cambiar cantidades, vaciar el carrito y calcular el total. La página del carrito, el checkout, los pedidos y el resumen administrativo se incorporarán en etapas posteriores.
+- **`/` · Catálogo público.** Búsqueda por nombre, filtro por categoría y paginación del servidor. Muestra carga, ausencia de resultados o error según corresponda. En los productos sin stock o no disponibles, el botón de agregado queda deshabilitado.
+- **`/carrito` · Público.** Permite ajustar cantidades según el stock, quitar productos, vaciar el carrito y consultar subtotales y total estimado. Zustand persiste los ítems en el navegador y conserva el carrito al recargar o iniciar sesión.
+- **`/checkout` · Sesión activa.** TanStack Form captura la dirección de entrega, el medio de pago y las notas opcionales. Los medios disponibles son efectivo y transferencia. Se vuelve a consultar el stock antes de confirmar y el backend calcula el total definitivo. Si la API confirma el pedido, se vacía el carrito y se abre `/mis-pedidos`. Si falla, la selección se conserva.
+- **`/mis-pedidos` · Sesión activa.** Muestra los pedidos propios y permite consultar dirección, pago y líneas con sus precios históricos. El botón de cancelación aparece para pedidos propios en estado `PENDIENTE`.
 
-### Autenticación y administración
+### Acceso y sesión
 
-- **`/login` y `/register`.** El login usa nombre de usuario y contraseña. El registro solicita nombre de usuario, nombre completo, email y contraseña de al menos ocho caracteres. Ambos formularios usan TanStack Form y muestran los errores de la API.
-- **Sesión.** Axios envía la cookie HttpOnly con `withCredentials`. Zustand guarda el perfil público en `sessionStorage`. Al abrir o recargar la aplicación, `checkSession` consulta `/api/v1/auth/me` y la interfaz espera esa comprobación antes de abrir las rutas protegidas. Desde la barra de navegación se puede cerrar sesión.
-- **`/admin/categorias`.** Listado, alta, edición y baja lógica de categorías.
-- **`/admin/productos`.** Listado, alta, edición y baja lógica de productos. Cada producto tiene una categoría. El ajuste de stock y disponibilidad usa el endpoint PATCH específico.
-- **`/admin/usuarios`.** Listado y activación o desactivación de cuentas. La acción para desactivar la cuenta propia no aparece.
+- **`/login` y `/register`.** Los dos formularios usan TanStack Form. El login recibe el nombre de usuario y la contraseña. El registro también pide nombre completo y correo. Si entraste al login desde el checkout, volvés a la compra.
+- **Sesión.** Axios usa `withCredentials` para que el navegador envíe la cookie HttpOnly. Zustand guarda el perfil público en `sessionStorage`. Al abrir o recargar la aplicación, `checkSession` consulta `/api/v1/auth/me`. La barra de navegación permite cerrar la sesión.
+- **Permisos.** `ProtectedRoute` espera la validación de sesión, redirige a `/login` cuando hace falta y muestra `/unauthorized` cuando el rol carece de acceso. Los usuarios comunes pueden comprar y administrar sus propios pedidos en los estados permitidos. Los administradores también tienen acceso al panel.
 
-Las rutas administrativas requieren el rol `admin`. Sin sesión, redirigen a `/login`. Con sesión y sin ese rol, redirigen a `/unauthorized`. TanStack Table organiza las tablas, TanStack Form gestiona los formularios de alta y edición de catálogo, y TanStack Query actualiza los datos después de las mutaciones. El panel de productos solicita hasta 100 registros y pagina esa lista en el navegador.
+### Panel administrativo
+
+| Ruta | Funcionalidad |
+|---|---|
+| `/admin/categorias` | Listado, alta, edición y baja lógica. |
+| `/admin/productos` | Listado, alta, edición, baja lógica y ajuste de stock y disponibilidad. |
+| `/admin/usuarios` | Listado, activación y desactivación de cuentas. |
+| `/admin/pedidos` | Listado paginado por el servidor, filtro por estado, detalle y transiciones permitidas. |
+| `/admin/resumen` | Pendientes, en preparación, entregados, cancelados, pedidos de hoy e ingresos de pedidos entregados. Los valores provienen de la API. |
+
+El panel usa TanStack Table para los listados y TanStack Form en el alta y la edición del catálogo. TanStack Query gestiona las peticiones e invalida pedidos, detalle y resumen después de una mutación. Cuando un alta o una cancelación modifica stock, también se actualizan las consultas de productos. La caché privada se limpia al cambiar de usuario o de rol.
+
+La barra de navegación permite elegir modo claro u oscuro y guarda la preferencia en el navegador.
