@@ -1,9 +1,19 @@
 
 <!doctype html>
-<html lang="es">
+<html lang="es" class="dark" style="color-scheme: dark">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script>
+      try {
+        const preferencia = JSON.parse(localStorage.getItem("theme-storage") || "null");
+        const oscuro = preferencia?.state?.darkMode !== false;
+        document.documentElement.classList.toggle("dark", oscuro);
+        document.documentElement.style.colorScheme = oscuro ? "dark" : "light";
+      } catch {
+        document.documentElement.classList.add("dark");
+      }
+    </script>
     <title>Food Store — Programación IV</title>
   </head>
   <body>

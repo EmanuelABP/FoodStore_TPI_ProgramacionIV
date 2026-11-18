@@ -94,8 +94,8 @@ export function useCatalogo<Registro extends Datos & { id: number }, Datos exten
     }
   }
 
-  function eliminar(id: number) {
-    if (ocupado || !window.confirm("¿Querés dar de baja este registro?")) return;
+  function eliminar(id: number, confirmado = false) {
+    if (ocupado || (!confirmado && !window.confirm("¿Querés dar de baja este registro?"))) return;
     alta.reset();
     edicion.reset();
     setErrorDetalle("");

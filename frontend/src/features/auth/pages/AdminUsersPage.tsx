@@ -19,7 +19,13 @@ function TablaUsuarios({ usuarios, idActual, ocupado, onCambiarEstado }: TablaUs
     { accessorKey: "full_name", header: "Nombre completo" },
     { accessorKey: "email", header: "Email" },
     { accessorKey: "role", header: "Rol" },
-    { accessorKey: "disabled", header: "Estado", cell: ({ row }) => row.original.disabled ? "Desactivado" : "Activo" },
+    { accessorKey: "disabled", header: "Estado", cell: ({ row }) => (
+      <span className={`inline-block rounded-full px-2.5 py-1 text-xs font-medium ${row.original.disabled
+        ? "bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-200"
+        : "bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-200"}`}>
+        {row.original.disabled ? "Desactivado" : "Activo"}
+      </span>
+    ) },
     {
       id: "accion",
       header: "Acción",
@@ -28,7 +34,7 @@ function TablaUsuarios({ usuarios, idActual, ocupado, onCambiarEstado }: TablaUs
         if (!usuario.disabled && usuario.id === idActual) return null;
 
         return (
-          <button className="btn-secundario" type="button" disabled={ocupado}
+          <button className={`btn-secundario w-28 text-center ${usuario.disabled ? "btn-exito" : "btn-peligro"}`} type="button" disabled={ocupado}
             onClick={() => onCambiarEstado({ id: usuario.id, activo: usuario.disabled })}>
             {usuario.disabled ? "Activar" : "Desactivar"}
           </button>

@@ -29,10 +29,10 @@ export default function MisPedidosPage() {
           <ul className="space-y-3">
             {pedidos.data.items.map((pedido) => (
               <li key={pedido.id} className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900">
-                <div className="space-y-1">
+                <div className="min-w-0 max-w-full space-y-1">
                   <div className="flex items-center gap-3"><h2 className="font-semibold">Pedido #{pedido.id}</h2><EstadoPedidoBadge estado={pedido.estado} /></div>
                   <p className="text-sm">{fechaPedido(pedido.created_at)} · {formasPago[pedido.forma_pago]}</p>
-                  <p className="font-semibold">{importe(pedido.total)}</p>
+                  <p className="importe font-semibold">{importe(pedido.total)}</p>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <button type="button" className="btn-secundario" aria-expanded={detalleId === pedido.id}

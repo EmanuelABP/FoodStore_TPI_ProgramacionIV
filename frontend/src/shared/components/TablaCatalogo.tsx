@@ -14,10 +14,11 @@ interface TablaProps<T extends { id: number }> {
   onEditar: (registro: T) => void;
   onEliminar: (id: number) => void;
   accionesExtra?: (registro: T) => ReactNode;
+  accionesVerticales?: boolean;
 }
 
 export default function TablaCatalogo<T extends { id: number }>({
-  registros, columnas, titulo, ocupado, puedeEditar, onEditar, onEliminar, accionesExtra,
+  registros, columnas, titulo, ocupado, puedeEditar, onEditar, onEliminar, accionesExtra, accionesVerticales = false,
 }: TablaProps<T>) {
   const [sorting, setSorting] = useState<SortingState>([]);
   // TanStack Table v8 maneja su propio estado de tabla.
@@ -66,8 +67,8 @@ export default function TablaCatalogo<T extends { id: number }>({
                     {flexRender(celda.column.columnDef.cell, celda.getContext())}
                   </td>
                 ))}
-                {puedeEditar && <td className="px-4 py-3">
-                  <div className="flex flex-wrap gap-2">
+                {puedeEditar && <td className={accionesVerticales ? "w-px px-4 py-3 align-top" : "px-4 py-3"}>
+                  <div className={accionesVerticales ? "grid gap-2 whitespace-nowrap text-center" : "flex flex-wrap gap-2"}>
                     <button className="btn-secundario" disabled={ocupado} type="button"
                       onClick={() => onEditar(fila.original)}>Editar</button>
                     <button className="btn-secundario text-red-700 dark:text-red-300" disabled={ocupado} type="button"

@@ -40,7 +40,7 @@ export default function AdminProductosPage() {
           listado.data.length === 0 ? <Vacio mensaje="No hay productos activos." /> : (
             <TablaCatalogo registros={listado.data} columnas={columnas} titulo="Productos"
               ocupado={ocupado} puedeEditar onEditar={catalogo.abrir} onEliminar={catalogo.eliminar}
-              accionesExtra={(producto) => (
+              accionesVerticales accionesExtra={(producto) => (
                 <button className="btn-secundario" type="button" disabled={ocupado}
                   onClick={() => abrirStock(producto)}>Stock</button>
               )} />

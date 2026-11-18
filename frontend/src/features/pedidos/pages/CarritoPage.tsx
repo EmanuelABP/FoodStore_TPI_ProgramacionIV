@@ -22,7 +22,7 @@ export default function CarritoPage() {
         <Link to="/" className="btn-secundario">Continuar comprando</Link>
         {items.length > 0 && (
           <>
-            <button type="button" className="btn-secundario" onClick={vaciar}>Vaciar carrito</button>
+            <button type="button" className="btn-secundario btn-peligro" onClick={vaciar}>Vaciar carrito</button>
             {carrito.valido ? <Link to="/checkout" className="btn-primario">Ir al checkout</Link> :
               <button type="button" className="btn-primario" disabled>Ir al checkout</button>}
           </>

@@ -19,11 +19,11 @@ export default function AdminResumenPage() {
       <h1 className="text-3xl font-bold">Resumen del negocio</h1>
       {resumen.isPending ? <Cargando mensaje="Cargando resumen…" /> :
         resumen.isError ? <ErrorMensaje mensaje={resumen.error.message} /> : (
-          <dl className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <dl className="grid min-w-0 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {indicadores?.map(({ etiqueta, valor }) => (
-              <div key={etiqueta} className="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-900">
+              <div key={etiqueta} className="min-w-0 rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-900">
                 <dt className="text-sm font-medium text-slate-600 dark:text-slate-300">{etiqueta}</dt>
-                <dd className="mt-2 text-2xl font-bold">{valor}</dd>
+                <dd className="importe mt-2 text-xl font-bold sm:text-2xl">{valor}</dd>
               </div>
             ))}
           </dl>

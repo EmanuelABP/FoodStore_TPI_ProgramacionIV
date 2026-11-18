@@ -53,7 +53,7 @@ export default function DetallePedido({ id, propio, onCerrar }: Props) {
                 </tbody>
               </table>
             </div>
-            <p className="text-right font-semibold">Total {importe(pedido.total)}</p>
+            <p className="importe text-right font-semibold">Total {importe(pedido.total)}</p>
           </>
         )}
     </section>

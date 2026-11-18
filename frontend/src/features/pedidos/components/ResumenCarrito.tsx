@@ -24,12 +24,13 @@ export default function ResumenCarrito({ lineas, total, onCantidad, onQuitar }: 
           const stock = producto?.stock ?? 0;
           return (
             <li key={item.producto_id} className="flex flex-wrap items-center justify-between gap-4 py-4 first:pt-0">
-              <div>
+              <div className="min-w-0 max-w-full importe">
                 <h2 className="font-semibold">{producto?.nombre ?? item.nombre}</h2>
                 <p className="text-sm">{importe(precio)} por unidad · {item.cantidad} {item.cantidad === 1 ? "unidad" : "unidades"}</p>
+                {producto && <p className="text-sm text-slate-600 dark:text-slate-300">Stock disponible: {stock}</p>}
                 {problema && <p className="text-sm text-red-700 dark:text-red-300">{problema}</p>}
               </div>
-              <div className="flex flex-wrap items-center gap-2">
+              <div className="flex min-w-0 max-w-full flex-wrap items-center gap-2">
                 {onCantidad && (
                   <>
                     <button type="button" className="btn-secundario" aria-label={`Disminuir cantidad de ${item.nombre}`}
@@ -39,9 +40,9 @@ export default function ResumenCarrito({ lineas, total, onCantidad, onQuitar }: 
                       onClick={() => onCantidad(item.producto_id, item.cantidad + 1, stock)}>+</button>
                   </>
                 )}
-                <span className="font-semibold">Subtotal {importe(precio * item.cantidad)}</span>
+                <span className="importe font-semibold">Subtotal {importe(precio * item.cantidad)}</span>
                 {onQuitar && (
-                  <button type="button" className="btn-secundario" aria-label={`Quitar ${item.nombre}`}
+                  <button type="button" className="btn-secundario btn-peligro" aria-label={`Quitar ${item.nombre}`}
                     onClick={() => onQuitar(item.producto_id)}>Quitar</button>
                 )}
               </div>
@@ -49,7 +50,7 @@ export default function ResumenCarrito({ lineas, total, onCantidad, onQuitar }: 
           );
         })}
       </ul>
-      <p className="border-t border-slate-200 pt-4 text-lg font-semibold dark:border-slate-700">Total estimado {importe(total)}</p>
+      <p className="importe border-t border-slate-200 pt-4 text-lg font-semibold dark:border-slate-700">Total estimado {importe(total)}</p>
     </section>
   );
 }

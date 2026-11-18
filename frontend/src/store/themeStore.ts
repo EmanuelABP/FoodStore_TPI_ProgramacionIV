@@ -8,7 +8,7 @@ interface ThemeState {
 
 export const useThemeStore = create<ThemeState>()(persist(
   (set) => ({
-    darkMode: false,
+    darkMode: true,
     toggleTheme: () => set((state) => ({ darkMode: !state.darkMode })),
   }),
   { name: "theme-storage", partialize: ({ darkMode }) => ({ darkMode }) },

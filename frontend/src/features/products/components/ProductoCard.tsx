@@ -18,10 +18,10 @@ export default function ProductoCard({ producto }: { producto: ProductoRead }) {
           <h2 className="mt-1 text-xl font-semibold">{producto.nombre}</h2>
         </div>
         {producto.descripcion && <p className="text-sm text-slate-700 dark:text-slate-300">{producto.descripcion}</p>}
-        <p className="mt-auto text-lg font-semibold">
+        <p className="importe mt-auto text-lg font-semibold">
           {producto.precio_base.toLocaleString("es-AR", { style: "currency", currency: "ARS" })}
         </p>
-        <p className="text-sm">
+        <p className={!producto.stock ? "self-start rounded bg-amber-100 px-2 py-1 text-sm font-semibold text-amber-900 dark:bg-amber-950 dark:text-amber-200" : "text-sm"}>
           {!producto.disponible ? "No disponible" : producto.stock === 0 ? "Sin stock" : `Stock: ${producto.stock}`}
         </p>
         <button type="button" className="btn-primario self-start"

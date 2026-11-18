@@ -1,3 +1,4 @@
+import ConfirmarAccion from "@/shared/components/ConfirmarAccion";
 import { useState } from "react";
 import { Cargando, ErrorMensaje, Vacio } from "@/shared/components/EstadoListado";
 import DetallePedido from "../components/DetallePedido";
@@ -14,12 +15,14 @@ export default function AdminPedidosPage() {
   const [pagina, setPagina] = useState(0);
   const [estado, setEstado] = useState<EstadoPedido>();
   const [detalleId, setDetalleId] = useState<number | null>(null);
+  const [entregaId, setEntregaId] = useState<number | null>(null);
   const pedidos = usePedidos({ skip: pagina * limite, limit: limite, estado }, false);
   const cambio = useCambiarEstadoPedido();
 
   function cambiar(id: number, estado: EstadoPedido) {
     if (cambio.isPending) return;
     if (estado === "CANCELADO" && !window.confirm(`¿Cancelar el pedido #${id} y restituir el stock?`)) return;
+    if (estado === "ENTREGADO") { setEntregaId(id); return; }
     cambio.mutate({ id, datos: { estado } });
   }
 
@@ -45,6 +48,16 @@ export default function AdminPedidosPage() {
         ) : <Vacio mensaje="No hay pedidos para los filtros actuales." />}
       <PaginacionPedidos pagina={pagina} limite={limite} total={pedidos.data?.total ?? 0}
         cargando={pedidos.isPending} onPagina={setPagina} />
+      {entregaId !== null && (
+        <ConfirmarAccion titulo="Confirmar entrega" confirmar="Marcar como entregado"
+          onCerrar={() => setEntregaId(null)}
+          onConfirmar={() => {
+            cambio.mutate({ id: entregaId, datos: { estado: "ENTREGADO" } });
+            setEntregaId(null);
+          }}>
+          <p>El pedido #{entregaId} pasará a ENTREGADO. Este estado es terminal y no puede revertirse.</p>
+        </ConfirmarAccion>
+      )}
       {detalleId !== null && <DetallePedido id={detalleId} propio={false} onCerrar={() => setDetalleId(null)} />}
     </main>
   );
