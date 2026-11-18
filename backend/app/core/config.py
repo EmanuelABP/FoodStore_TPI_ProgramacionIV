@@ -39,6 +39,10 @@ TOKEN_MINUTES = settings.ACCESS_TOKEN_EXPIRE_MINUTES
 
 def secret_key() -> str:
     clave = settings.SECRET_KEY.get_secret_value()
-    if len(clave.encode("utf-8")) < 32 or clave.startswith("REEMPLAZAR"):
-        raise RuntimeError("Configurá SECRET_KEY con una clave aleatoria de al menos 32 bytes.")
+    es_ejemplo = (
+        clave.upper().startswith("REEMPLAZAR")
+        or clave.casefold() == "cambiar-esta-clave-de-al-menos-32-caracteres"
+    )
+    if len(clave) < 32 or len(clave.encode("utf-8")) < 32 or es_ejemplo:
+        raise RuntimeError("Configurá SECRET_KEY con una clave aleatoria de al menos 32 caracteres y 32 bytes UTF-8, sin usar valores de ejemplo.")
     return clave

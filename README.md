@@ -84,6 +84,8 @@ Desde `backend/`, con el entorno activo, instalá los paquetes que usa la API.
 python -m pip install -r requirements.txt
 ```
 
+**Nota de compatibilidad.** La consigna del TPI (página 7) indica `python-multipart==0.0.20`, pero uso `0.0.34` porque corrige una vulnerabilidad del procesamiento de formularios que también puede afectar a FastAPI, incluido el login. La decisión se basa en este [aviso oficial de seguridad](https://github.com/Kludex/python-multipart/security/advisories/GHSA-5rvq-cxj2-64vf).
+
 ### Paso 5. Preparar PostgreSQL y crear una base vacía · obligatorio
 
 Si todavía no tenés PostgreSQL, descargá el [instalador oficial para Windows](https://www.postgresql.org/download/windows/) e instalá el servidor y pgAdmin. Durante la instalación, definí la contraseña local del usuario `postgres` y anotá el puerto elegido, que por defecto es `5432`.
@@ -114,7 +116,7 @@ Desde `backend/`, con el entorno activo, generá una clave aleatoria para firmar
 python -c "import secrets; print(secrets.token_urlsafe(48))"
 ```
 
-Pegá el valor generado en `SECRET_KEY` dentro de `backend/.env`. La aplicación exige al menos 32 bytes y rechaza el marcador del ejemplo. Guardá la clave y la contraseña de PostgreSQL en tu copia local de `.env`, que se excluye de Git.
+Pegá el valor generado en `SECRET_KEY` dentro de `backend/.env`. La aplicación exige al menos 32 caracteres y 32 bytes UTF-8 y rechaza el marcador del ejemplo. Guardá la clave y la contraseña de PostgreSQL en tu copia local de `.env`, que se excluye de Git.
 
 ### Paso 8. Ejecutar el seed · obligatorio en una base nueva
 
@@ -199,7 +201,7 @@ Abrí [Food Store](http://localhost:5173) para recorrer el catálogo sin iniciar
 | Variable | Uso |
 |---|---|
 | `DATABASE_URL` | Conexión a PostgreSQL, en `backend/.env`. |
-| `SECRET_KEY` | Clave local de al menos 32 bytes para firmar JWT, en `backend/.env`. |
+| `SECRET_KEY` | Clave local de al menos 32 caracteres y 32 bytes UTF-8 para firmar JWT, en `backend/.env`. |
 | `ALGORITHM` | Algoritmo JWT de firma y validación. El ejemplo usa `HS256`. |
 | `ACCESS_TOKEN_EXPIRE_MINUTES` | Duración de la sesión. El ejemplo usa 30 minutos. |
 | `FRONTEND_ORIGIN` | Origen del frontend autorizado para CORS. El ejemplo usa `http://localhost:5173`. |
@@ -213,7 +215,8 @@ Abrí [Food Store](http://localhost:5173) para recorrer el catálogo sin iniciar
 - **`tpi-infra`.** Configuración, fábrica de sesiones, repositorio y Unit of Work comunes.
 - **`tpi-auth`.** Registro, inicio de sesión y administración de usuarios.
 - **`tpi-catalogo`.** Catálogo público, administración de categorías y productos, y seed con stock inicial.
-- **Etapa de pedidos.** Backend transaccional en `4be7f16`. Carrito, checkout, pedidos y panel de administración en `0cf74e0`. El cierre con `tpi-pedidos` está pendiente.
+- **`tpi-pedidos`.** Backend transaccional en `4be7f16`, frontend de compra y administración en `0cf74e0`, y cierre documental en `57acc6b`.
+- **Presentación y sesión.** Consolidación visual en `ae1bbd7`, correcciones de sesión en `2c62f8f` e integración de imágenes, firma y confirmaciones en `d86a682`.
 
 El código está en el [repositorio público de Food Store](https://github.com/EmanuelABP/FoodStore_TPI_ProgramacionIV).
 

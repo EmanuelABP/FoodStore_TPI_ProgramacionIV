@@ -98,7 +98,7 @@ Desde `backend/`, con el entorno activo, generá una clave aleatoria para firmar
 python -c "import secrets; print(secrets.token_urlsafe(48))"
 ```
 
-Pegá el valor generado en `SECRET_KEY` dentro de `backend/.env`. La aplicación exige al menos 32 bytes y rechaza el marcador del ejemplo. Guardá la clave y la contraseña de PostgreSQL en tu copia local de `.env`, que se excluye de Git.
+Pegá el valor generado en `SECRET_KEY` dentro de `backend/.env`. La aplicación exige al menos 32 caracteres y 32 bytes UTF-8 y rechaza el marcador del ejemplo. Guardá la clave y la contraseña de PostgreSQL en tu copia local de `.env`, que se excluye de Git.
 
 ### Paso 8. Ejecutar el seed · obligatorio en una base nueva
 
