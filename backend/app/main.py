@@ -30,8 +30,9 @@ app = FastAPI(
     description=(
         "API REST de Food Store para el Trabajo Práctico Integrador de Programación IV. "
         "Desarrollado por Emanuel Aaron Brahim Pollini, estudiante de la Tecnicatura "
-        "Universitaria en Programación de la UTN. Durante el desarrollo del TPI, "
-        "conserva los módulos heredados del TP9 de autenticación, catálogo y pedidos."
+        "Universitaria en Programación de la UTN. Autenticación, usuarios, categorías "
+        "y productos están adaptados al TPI. El módulo de pedidos conserva el contrato "
+        "heredado y queda pendiente de su adaptación definitiva."
     ),
     version="1.0.0",
     lifespan=lifespan,

@@ -5,7 +5,7 @@
 
 [README principal](../README.md) · [Guía del backend](../backend/README.md)
 
-El frontend del TPI parte de la implementación del TP10. Está desarrollado con React, TypeScript, Vite y Tailwind. Usa Axios, TanStack Query, Form y Table, React Router y Zustand.
+El frontend del TPI parte de la implementación del TP10. Está desarrollado con React 19, TypeScript en modo estricto, Vite y Tailwind CSS 4. Usa Axios, TanStack Query, Form y Table, React Router y Zustand.
 
 ## Preparar Node.js y pnpm
 
@@ -73,19 +73,31 @@ Desde `frontend/`, iniciá el servidor de desarrollo.
 pnpm dev
 ```
 
-Abrí [Food Store](http://localhost:5173) e iniciá sesión con el usuario `admin` y la contraseña local de demostración `Admin1234!`. Usá `localhost` para los dos servidores. Si Vite muestra otro puerto, agregá ese origen a la configuración CORS del backend y reiniciá la API. Si está definida `FRONTEND_ORIGINS`, actualizá esa lista. En caso contrario, editá `FRONTEND_ORIGIN`.
+Abrí [Food Store](http://localhost:5173) para recorrer el catálogo sin iniciar sesión. Para acceder al panel, entrá en `/login` e iniciá sesión con el usuario `admin` y la contraseña local de demostración `Admin1234!`. Usá `localhost` para los dos servidores. Si Vite muestra otro puerto, actualizá el origen autorizado en el backend y reiniciá la API. Si está definida `FRONTEND_ORIGINS`, actualizá esa lista. En caso contrario, editá `FRONTEND_ORIGIN`.
 
 ## Estructura
 
-- `src/features/` agrupa autenticación, categorías, productos e ingredientes. Cada área reúne sus páginas, componentes, hooks, tipos y servicios, y publica sus puntos de entrada en `index.ts`.
-- `src/shared/` contiene la instancia de Axios, sus interceptores y los componentes reutilizables del catálogo.
-- `src/routes/` define la navegación y las restricciones por sesión y rol.
-- `src/store/` contiene la preferencia de tema y las notificaciones. El store de autenticación vive en `src/features/auth/store/`. `App.tsx` verifica la sesión y monta el router y el aviso global.
+- `src/features/auth/` contiene autenticación y administración de usuarios.
+- `src/features/categories/` contiene la administración de categorías.
+- `src/features/products/` contiene el catálogo público y la administración de productos.
+- `src/shared/` reúne la instancia de Axios, sus interceptores y los componentes reutilizables.
+- `src/routes/` define la navegación y la protección por sesión y rol.
+- `src/store/` reúne el carrito, la preferencia de tema y las notificaciones. El store de autenticación vive en `src/features/auth/store/`.
 
-## Estado del frontend
+## Funcionalidades
 
-- **Autenticación.** El login envía `username` y `password` en un formulario OAuth2. El registro solicita `username`, `full_name`, `email` y `password` de al menos ocho caracteres. Los formularios usan TanStack Form y muestran los errores de la API.
-- **Sesión y permisos.** Axios envía la cookie HttpOnly con `withCredentials`. Zustand guarda únicamente el perfil público en `sessionStorage`. Al abrir o recargar la aplicación, `checkSession` consulta `/api/v1/auth/me` y mantiene las rutas protegidas en espera hasta confirmar la sesión. El permiso para administrar usuarios depende de `role === "admin"`.
-- **Usuarios.** En `/admin/usuarios`, la tabla muestra nombre de usuario, nombre completo, email, rol y estado. Activar y desactivar actualiza el listado mediante TanStack Query. El administrador ve la acción Desactivar en las cuentas activas de otros usuarios.
-- **Catálogo heredado.** Categorías, productos e ingredientes conservan sus pantallas con sesión y sus rutas actuales. Para esas peticiones, Axios usa el origen de la API sin el prefijo `/api/v1`. La interfaz conserva el tema y los avisos existentes.
-- **Pendiente del TPI.** Catálogo público, carrito, checkout, consulta de pedidos propios y panel de gestión de stock y pedidos.
+### Catálogo público
+
+En `/` se pueden consultar productos sin iniciar sesión, buscar por nombre y filtrar por categoría. La búsqueda, el filtro y la paginación se resuelven en la API. La página muestra un esqueleto de carga, un estado vacío o un mensaje de error cuando corresponde. Los productos activos de categorías dadas de baja siguen apareciendo. Los productos sin stock o no disponibles se muestran con su estado y con el botón de agregado deshabilitado.
+
+**Agregar al carrito** actualiza un store de Zustand persistido en el navegador. Cada línea guarda el ID del producto, su nombre, el precio unitario y la cantidad. El store permite quitar líneas, cambiar cantidades, vaciar el carrito y calcular el total. La página del carrito, el checkout, los pedidos y el resumen administrativo se incorporarán en etapas posteriores.
+
+### Autenticación y administración
+
+- **`/login` y `/register`.** El login usa nombre de usuario y contraseña. El registro solicita nombre de usuario, nombre completo, email y contraseña de al menos ocho caracteres. Ambos formularios usan TanStack Form y muestran los errores de la API.
+- **Sesión.** Axios envía la cookie HttpOnly con `withCredentials`. Zustand guarda el perfil público en `sessionStorage`. Al abrir o recargar la aplicación, `checkSession` consulta `/api/v1/auth/me` y la interfaz espera esa comprobación antes de abrir las rutas protegidas. Desde la barra de navegación se puede cerrar sesión.
+- **`/admin/categorias`.** Listado, alta, edición y baja lógica de categorías.
+- **`/admin/productos`.** Listado, alta, edición y baja lógica de productos. Cada producto tiene una categoría. El ajuste de stock y disponibilidad usa el endpoint PATCH específico.
+- **`/admin/usuarios`.** Listado y activación o desactivación de cuentas. La acción para desactivar la cuenta propia no aparece.
+
+Las rutas administrativas requieren el rol `admin`. Sin sesión, redirigen a `/login`. Con sesión y sin ese rol, redirigen a `/unauthorized`. TanStack Table organiza las tablas, TanStack Form gestiona los formularios de alta y edición de catálogo, y TanStack Query actualiza los datos después de las mutaciones. El panel de productos solicita hasta 100 registros y pagina esa lista en el navegador.

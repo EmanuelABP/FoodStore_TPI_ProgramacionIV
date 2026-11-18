@@ -8,13 +8,30 @@
 Food Store es un sistema de catálogo y pedidos para un local de comidas. El TPI se desarrolla a partir del backend del TP9 y del frontend del TP10.
 
 - **Backend.** Python, FastAPI, Pydantic y SQLModel sobre PostgreSQL.
-- **Frontend.** React, TypeScript, Vite, Tailwind, Axios, TanStack Query, Form y Table, React Router y Zustand.
+- **Frontend.** React 19, TypeScript estricto, Vite, Tailwind CSS 4, Axios, TanStack Query, Form y Table, React Router y Zustand.
 
 ## Estado del proyecto
 
-La Etapa 1 incorporó `Settings`, la fábrica de sesiones, `BaseRepository[T]` y `UnitOfWork`. La Etapa 2 integró el modelo de usuario del TPI, el registro y el login por nombre de usuario, JWT en cookie HttpOnly y la gestión de cuentas con roles `user` y `admin`. La interfaz confirma la sesión con `/api/v1/auth/me` y habilita `/admin/usuarios` para administradores.
+La infraestructura incluye configuración desde `.env`, una fábrica de sesiones y las clases compartidas `BaseRepository[T]` y `UnitOfWork`. La autenticación usa nombre de usuario, JWT en cookie HttpOnly y los roles `user` y `admin`.
 
-**Pendiente.** El catálogo vigente todavía requiere sesión y usa las rutas heredadas. Quedan para las próximas etapas el catálogo público, el stock, el carrito, el checkout y la gestión de pedidos del TPI.
+El catálogo público permite buscar productos por nombre, filtrar por categoría y recorrer páginas consultadas al servidor. El botón **Agregar al carrito** guarda la selección al recargar. Los administradores pueden gestionar usuarios, categorías y productos, y actualizar stock y disponibilidad. Las bajas del catálogo son lógicas.
+
+| Ruta | Acceso y funcionalidad |
+|---|---|
+| `/` | Público. Catálogo, búsqueda, filtro, paginación y agregado al carrito. |
+| `/login`, `/register` | Público. Inicio de sesión y registro. |
+| `/admin/categorias` | Admin. Alta, edición y baja lógica de categorías. |
+| `/admin/productos` | Admin. Alta, edición, baja lógica y ajuste de stock y disponibilidad. |
+| `/admin/usuarios` | Admin. Listado, activación y desactivación de cuentas. |
+
+Quedan pendientes la página del carrito, el checkout, la adaptación de pedidos al TPI y el resumen administrativo.
+
+## Estructura del repositorio
+
+- `backend/app/core/` reúne la configuración, las sesiones y las clases compartidas de persistencia.
+- `backend/app/modules/` contiene autenticación, usuarios, categorías, productos y el módulo heredado de pedidos.
+- `backend/app/db/` contiene el seed. `backend/http/` reúne las solicitudes de REST Client.
+- `frontend/src/` organiza la interfaz por funcionalidades y contiene las rutas, los componentes compartidos y los stores de Zustand.
 
 ## Requisitos
 
@@ -58,9 +75,11 @@ Desde `backend/`, con el entorno activo, instalá los paquetes que usa la API.
 python -m pip install -r requirements.txt
 ```
 
-### Paso 5. Crear la base en PostgreSQL · obligatorio
+### Paso 5. Preparar PostgreSQL y crear una base vacía · obligatorio
 
-Con PostgreSQL iniciado, creá una base local nueva llamada `foodstore_tpi`. Si ya usaste ese nombre con el esquema del TP9, creá otra base y usá su nombre en `DATABASE_URL`. El arranque y el seed crean tablas faltantes, pero requieren un esquema compatible. En pgAdmin podés hacerlo desde el menú contextual de **Databases → Create → Database**. Usá como propietario el usuario con el que se conectará la API.
+Si todavía no tenés PostgreSQL, descargá el [instalador oficial para Windows](https://www.postgresql.org/download/windows/) e instalá el servidor y pgAdmin. Durante la instalación, definí la contraseña local del usuario `postgres` y anotá el puerto elegido, que por defecto es `5432`.
+
+Con el servicio iniciado, abrí pgAdmin y conectate al servidor local con ese usuario. Sobre **Databases**, elegí **Create → Database**, poné `foodstore_tpi` como nombre y seleccioná como propietario el usuario que va a usar la API. Si ya existe una base con ese nombre, elegí otro y usalo en `DATABASE_URL`. El seed crea las tablas faltantes en la base vacía. Para esta instalación usá una base nueva, porque las tablas de versiones anteriores requieren otro esquema.
 
 ### Paso 6. Configurar el archivo `.env` · obligatorio
 
@@ -90,7 +109,7 @@ Pegá el valor generado en `SECRET_KEY` dentro de `backend/.env`. La aplicación
 
 ### Paso 8. Ejecutar el seed · obligatorio en una base nueva
 
-Desde `backend/`, con el entorno virtual activo, prepará el administrador de demostración y los catálogos auxiliares del módulo de pedidos heredado.
+Desde `backend/`, con el entorno virtual activo, ejecutá el seed para crear las tablas y cargar el administrador de demostración, tres categorías y ocho productos con stock inicial.
 
 ```powershell
 python -m app.db.seed
@@ -98,11 +117,17 @@ python -m app.db.seed
 
 El administrador tiene **usuario `admin`**, **contraseña `Admin1234!`** y **rol `admin`**. Estas credenciales son exclusivamente para demostraciones locales. El registro público crea cuentas con rol `user`.
 
-El seed se puede volver a ejecutar sin duplicar el administrador. Queda pendiente cargar las tres categorías y los ocho productos con stock exigidos por CE-04.
+Podés volver a ejecutar el seed sobre la misma base para repetir la carga sin duplicar los datos de demostración.
 
 ### Paso 9. Iniciar la API · obligatorio
 
 Desde `backend/`, con el entorno activo, iniciá Uvicorn. La opción `--reload` reinicia el servidor cuando editás el código.
+
+```powershell
+uvicorn app.main:app --reload
+```
+
+Si PowerShell no encuentra el ejecutable, desde `backend/` y con el entorno activo, invocá Uvicorn mediante Python.
 
 ```powershell
 python -m uvicorn app.main:app --reload
@@ -158,7 +183,7 @@ Desde `frontend/`, iniciá el servidor de desarrollo.
 pnpm dev
 ```
 
-Abrí [Food Store](http://localhost:5173) e iniciá sesión con el usuario `admin` y la contraseña local de demostración `Admin1234!`. Usá `localhost` para los dos servidores. Si Vite muestra otro puerto, agregá ese origen a la configuración CORS del backend y reiniciá la API. Si está definida `FRONTEND_ORIGINS`, actualizá esa lista. En caso contrario, editá `FRONTEND_ORIGIN`.
+Abrí [Food Store](http://localhost:5173) para recorrer el catálogo sin iniciar sesión. Para acceder al panel, entrá en `/login` e iniciá sesión con el usuario `admin` y la contraseña local de demostración `Admin1234!`. Usá `localhost` para los dos servidores. Si Vite muestra otro puerto, actualizá el origen autorizado en el backend y reiniciá la API. Si está definida `FRONTEND_ORIGINS`, actualizá esa lista. En caso contrario, editá `FRONTEND_ORIGIN`.
 
 ## Configuración que usa esta versión
 
@@ -175,8 +200,13 @@ Abrí [Food Store](http://localhost:5173) e iniciá sesión con el usuario `admi
 
 ## Historial e hitos
 
-- **`base-tp9-tp10` · definitivo y existente.** Referencia de la base integrada de los dos trabajos prácticos.
-- **Etapa 1 · Infraestructura.** Configuración, fábrica de sesiones, repositorio y Unit of Work comunes, y documentación de arranque. Tag publicado `tpi-infra`.
-- **Etapa 2 · Autenticación y usuarios.** Contrato del TPI en backend y frontend. Próximo hito previsto `tpi-auth`.
+- **`base-tp9-tp10`.** Base integrada de los dos trabajos prácticos.
+- **Etapa 1 · Infraestructura (`tpi-infra`).** Configuración, fábrica de sesiones, repositorio y Unit of Work comunes, y documentación de arranque.
+- **Etapa 2 · Autenticación y usuarios (`tpi-auth`).** Registro, inicio de sesión y administración de usuarios integrados con la interfaz.
+- **Etapa 3 · Catálogo.** API, catálogo público, administración de categorías y productos y carga inicial con stock. Próximo hito `tpi-catalogo`.
 
-Más detalles en el [README del backend](backend/README.md) y el [README del frontend](frontend/README.md). El código está en [FoodStore_TPI_ProgramacionIV](https://github.com/EmanuelABP/FoodStore_TPI_ProgramacionIV).
+El código está en el [repositorio público de Food Store](https://github.com/EmanuelABP/FoodStore_TPI_ProgramacionIV).
+
+## Video de demostración
+
+Enlace pendiente hasta que esté disponible el video definitivo.

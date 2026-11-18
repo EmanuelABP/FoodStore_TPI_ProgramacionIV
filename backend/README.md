@@ -7,11 +7,13 @@
 
 ## Estado del backend
 
-La API usa FastAPI, Pydantic, SQLModel y PostgreSQL. En esta etapa se incorporaron `Settings` para leer `.env`, `session_factory()` para abrir sesiones y las clases compartidas `BaseRepository[T]` y `UnitOfWork`. La integración de estas clases con los módulos del TPI se hará por etapas. El módulo de pedidos conserva su Unit of Work propio.
+La API está desarrollada con FastAPI, Pydantic y SQLModel sobre PostgreSQL. `Settings` lee la configuración de `.env` y `session_factory()` abre las sesiones. Los módulos `auth`, `usuarios`, `categorias` y `productos` están adaptados al TPI.
 
-La autenticación usa el modelo Usuario del TPI, con un rol singular `user` o `admin` y el campo `disabled` para el estado de la cuenta. El login recibe el nombre de usuario. Passlib y bcrypt protegen las contraseñas. Python-jose firma el JWT y FastAPI lo entrega en la cookie `access_token` con HttpOnly y SameSite=Lax. CORS permite credenciales desde orígenes explícitos.
+En categorías y productos, el flujo es **Router → Service → Unit of Work → Repository → Model**. El router aplica permisos y traduce errores a respuestas HTTP. El servicio ejecuta las reglas de negocio dentro del Unit of Work, que comparte la sesión con los repositorios y confirma o revierte la transacción al salir. Los repositorios heredan de `BaseRepository[T]`. Los schemas separan la entrada y la salida de los modelos de tabla.
 
-Categorías, productos, ingredientes y pedidos mantienen las operaciones heredadas mientras avanza su adaptación. El catálogo público, el stock y el flujo definitivo de pedidos siguen pendientes.
+La autenticación tiene un rol singular `user` o `admin` y usa `disabled` para el estado de la cuenta. Passlib y bcrypt protegen las contraseñas. Python-jose firma el JWT y FastAPI lo entrega en la cookie `access_token` con HttpOnly y SameSite=Lax. CORS permite credenciales desde orígenes explícitos.
+
+Cada producto pertenece a una categoría mediante `categoria_id`. La relación 1:N se define con `Categoria.productos` y `Producto.categoria`. Categorías y productos se dan de baja con `activo=false`. Una categoría inactiva se excluye del listado de categorías y conserva tanto su nombre como las relaciones con sus productos. Los productos activos de esa categoría siguen apareciendo en el catálogo público.
 
 ## Instalación y ejecución en Windows
 
@@ -49,9 +51,11 @@ Desde `backend/`, con el entorno activo, instalá los paquetes que usa la API.
 python -m pip install -r requirements.txt
 ```
 
-### Paso 5. Crear la base en PostgreSQL · obligatorio
+### Paso 5. Preparar PostgreSQL y crear una base vacía · obligatorio
 
-Con PostgreSQL iniciado, creá una base local nueva llamada `foodstore_tpi`. Si ya usaste ese nombre con el esquema del TP9, creá otra base y usá su nombre en `DATABASE_URL`. El arranque y el seed crean tablas faltantes, pero requieren un esquema compatible. En pgAdmin podés hacerlo desde el menú contextual de **Databases → Create → Database**. Usá como propietario el usuario con el que se conectará la API.
+Si todavía no tenés PostgreSQL, descargá el [instalador oficial para Windows](https://www.postgresql.org/download/windows/) e instalá el servidor y pgAdmin. Durante la instalación, definí la contraseña local del usuario `postgres` y anotá el puerto elegido, que por defecto es `5432`.
+
+Con el servicio iniciado, abrí pgAdmin y conectate al servidor local con ese usuario. Sobre **Databases**, elegí **Create → Database**, poné `foodstore_tpi` como nombre y seleccioná como propietario el usuario que va a usar la API. Si ya existe una base con ese nombre, elegí otro y usalo en `DATABASE_URL`. El seed crea las tablas faltantes en la base vacía. Para esta instalación usá una base nueva, porque las tablas de versiones anteriores requieren otro esquema.
 
 ### Paso 6. Configurar el archivo `.env` · obligatorio
 
@@ -81,7 +85,7 @@ Pegá el valor generado en `SECRET_KEY` dentro de `backend/.env`. La aplicación
 
 ### Paso 8. Ejecutar el seed · obligatorio en una base nueva
 
-Desde `backend/`, con el entorno virtual activo, prepará el administrador de demostración y los catálogos auxiliares del módulo de pedidos heredado.
+Desde `backend/`, con el entorno virtual activo, ejecutá el seed para crear las tablas y cargar el administrador de demostración, tres categorías y ocho productos con stock inicial.
 
 ```powershell
 python -m app.db.seed
@@ -89,11 +93,17 @@ python -m app.db.seed
 
 El administrador tiene **usuario `admin`**, **contraseña `Admin1234!`** y **rol `admin`**. Estas credenciales son exclusivamente para demostraciones locales. El registro público crea cuentas con rol `user`.
 
-El seed se puede volver a ejecutar sin duplicar el administrador. Queda pendiente cargar las tres categorías y los ocho productos con stock exigidos por CE-04.
+Podés volver a ejecutar el seed sobre la misma base para repetir la carga sin duplicar los datos de demostración.
 
 ### Paso 9. Iniciar la API · obligatorio
 
 Desde `backend/`, con el entorno activo, iniciá Uvicorn. La opción `--reload` reinicia el servidor cuando editás el código.
+
+```powershell
+uvicorn app.main:app --reload
+```
+
+Si PowerShell no encuentra el ejecutable, desde `backend/` y con el entorno activo, invocá Uvicorn mediante Python.
 
 ```powershell
 python -m uvicorn app.main:app --reload
@@ -123,21 +133,39 @@ Para ejecutar la interfaz junto a la API, seguí la [guía del frontend](../fron
 
 Las operaciones administrativas responden 403 si el usuario carece del rol `admin`. El perfil incluye `id`, `username`, `full_name`, `email`, `role`, `disabled` y `created_at`. El hash de contraseña queda en la base y el JWT viaja en la cookie HttpOnly.
 
-### Rutas heredadas
+### Categorías
 
-| Método y ruta | Acceso y operación |
+| Método y ruta | Acceso y respuesta |
 |---|---|
-| GET `/api/v1/estados-pedido` y `/api/v1/formas-pago` | Catálogos de solo lectura para usuarios autenticados. |
-| `/categorias/`, `/productos/`, `/ingredientes` | Lectura con sesión activa. Alta, edición y baja requieren admin. |
-| GET y POST `/productos/{id}/categorias`, DELETE `/productos/{id}/categorias/{categoria_id}` | Lectura con sesión activa. El admin asigna y quita categorías. Al marcar otra principal, se reemplaza la anterior. |
-| `/pedidos` y `/pedidos/{id}` | Lectura con sesión activa. El rol `user` o `admin` puede crear un pedido a su nombre. Edición y baja requieren admin. |
+| GET `/api/v1/categorias` | Público. Devuelve 200 con las categorías activas. |
+| GET `/api/v1/categorias/{id}` | Público. Devuelve 200 o 404 si la categoría no existe o está inactiva. |
+| POST `/api/v1/categorias` | Admin. Devuelve 201 o 409 si el nombre ya existe, incluso si la categoría está inactiva. |
+| PUT `/api/v1/categorias/{id}` | Admin. Actualiza los campos enviados. Devuelve 200, 404 o 409 por nombre duplicado. |
+| DELETE `/api/v1/categorias/{id}` | Admin. Baja lógica con 204. Devuelve 404 si la categoría ya está inactiva o no existe. |
 
-La falta de sesión responde 401, el rol insuficiente responde 403 y una cuenta desactivada responde 400. Los catálogos y Pedidos conservan sus bajas lógicas. Los listados normales excluyen bajas y el rol `admin` puede consultar categorías dadas de baja con `incluir_inactivos=true`.
+El nombre de la categoría debe tener de 2 a 100 caracteres. La descripción es opcional.
 
-En los listados de productos y categorías puedo pedir páginas con `offset`, `limit` y `nombre`. Las asociaciones de ingredientes se guardan con `ingrediente_ids` y los productos devuelven sus categorías con el indicador `es_principal`.
+### Productos
+
+| Método y ruta | Acceso y respuesta |
+|---|---|
+| GET `/api/v1/productos` | Público. Devuelve 200 con `total` e `items`. |
+| GET `/api/v1/productos/{id}` | Público. Devuelve 200 o 404 si el producto no existe o está inactivo. |
+| POST `/api/v1/productos` | Admin. Devuelve 201 o 404 si la categoría indicada no existe o está inactiva. |
+| PUT `/api/v1/productos/{id}` | Admin. Actualiza los campos enviados. Devuelve 200 o 404 si el producto no está activo o la categoría indicada no es válida. |
+| PATCH `/api/v1/productos/{id}/stock` | Admin. Recibe `stock` y `disponible`. Devuelve 200 o 404 si el producto no existe o está inactivo. |
+| DELETE `/api/v1/productos/{id}` | Admin. Baja lógica con 204. Devuelve 404 si el producto ya está inactivo o no existe. |
+
+El listado devuelve productos activos e incluye su categoría en `categoria`. Admite `skip` (0 por defecto), `limit` (20 por defecto y 100 como máximo), `search` (nombre sin distinguir mayúsculas), `categoria_id` y `disponible`. El total cuenta todos los resultados filtrados antes de paginar.
+
+El producto requiere nombre, precio base mayor o igual a cero y una categoría activa al crearlo o reasignarlo. El stock es entero y mayor o igual a cero. La descripción y la URL de imagen son opcionales. Las entradas inválidas devuelven 422. En operaciones administrativas, una sesión inválida devuelve 401, una cuenta desactivada devuelve 400 y un rol insuficiente devuelve 403.
+
+### Pedidos heredados
+
+El backend todavía registra `/pedidos` y `/pedidos/{pedido_id}` con el contrato heredado. Los catálogos autenticados de solo lectura `/api/v1/estados-pedido` y `/api/v1/formas-pago` acompañan ese módulo, y el seed conserva sus datos auxiliares. Las rutas definitivas, las reglas RN-01 a RN-06, la gestión transaccional de stock y el resumen de pedidos quedan pendientes.
 
 ## Pruebas con REST Client
 
-Con la API iniciada, abrí [auth.http](http/auth.http) en VS Code con la extensión REST Client. Completá las credenciales de prueba en tu copia local y ejecutá las solicitudes en orden con **Send Request**. Mantené habilitado el envío de cookies entre solicitudes.
+Con la API iniciada, abrí [auth.http](http/auth.http), [categorias.http](http/categorias.http) o [productos.http](http/productos.http) en VS Code con la extensión REST Client. Ejecutá cada secuencia en orden con **Send Request** y mantené habilitadas las cookies. Usá una base de prueba. Para repetir las altas de catálogo, cambiá `@lote` en el archivo correspondiente.
 
-Los guiones de [productos](http/productos.http), [ingredientes](http/ingredientes.http) y [pedidos](http/pedidos.http) conservan ejemplos de las operaciones de esos módulos. Sus bloques de login corresponden a la etapa anterior. Omití esos bloques y usá el login de `auth.http` en la misma sesión de REST Client. Para repetir una secuencia completa, usá una base de pruebas separada.
+[pedidos.http](http/pedidos.http) queda como referencia del módulo heredado. Sus solicitudes de login y preparación del catálogo usan contratos anteriores. La secuencia se actualizará con la adaptación de pedidos.
