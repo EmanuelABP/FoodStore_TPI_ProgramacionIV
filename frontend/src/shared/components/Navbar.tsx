@@ -40,10 +40,10 @@ export default function Navbar() {
               <Link className={estiloEnlace} to="/categories">Categorías</Link>
               <Link className={estiloEnlace} to="/products">Productos</Link>
               <Link className={estiloEnlace} to="/ingredientes">Ingredientes</Link>
-              {user.roles.includes("admin") && <Link className={estiloEnlace} to="/admin/users">Usuarios</Link>}
+              {user.role === "admin" && <Link className={estiloEnlace} to="/admin/usuarios">Usuarios</Link>}
             </div>
             <div className="flex flex-wrap items-center gap-3">
-              <span>{user.nombre} {user.apellido} <span className="text-slate-300">({user.roles.join(", ") || "sin rol vigente"})</span></span>
+              <span>{user.full_name} <span className="text-slate-300">({user.role})</span></span>
               <button className={estiloEnlace} type="button" disabled={cerrando}
                 onClick={() => { void cerrarSesion(); }}>Cerrar sesión</button>
             </div>

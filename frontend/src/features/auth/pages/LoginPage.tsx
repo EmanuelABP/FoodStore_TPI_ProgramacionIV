@@ -12,11 +12,11 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const { login, checking, user } = useAuth();
   const form = useForm({
-    defaultValues: { email: "", password: "" },
+    defaultValues: { username: "", password: "" },
     onSubmit: async ({ value }) => {
       setError("");
       try {
-        await login(value.email.trim(), value.password);
+        await login(value.username.trim(), value.password);
         navigate("/categories", { replace: true });
       } catch (error) {
         setError(mensajeApi(error));
@@ -28,9 +28,9 @@ export default function LoginPage() {
 
   return (
     <AuthForm titulo="Iniciar sesión" onSubmit={() => { void form.handleSubmit(); }}>
-      <form.Field name="email" validators={{ onSubmit: ({ value }) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim()) ? undefined : "Ingresá un email válido." }}>
+      <form.Field name="username" validators={{ onSubmit: ({ value }) => value.trim() ? undefined : "Ingresá tu nombre de usuario." }}>
         {(campo) => (
-          <CampoCatalogo nombre={campo.name} etiqueta="Email" tipo="email" autoComplete="username" maxLength={254}
+          <CampoCatalogo nombre={campo.name} etiqueta="Usuario" autoComplete="username" maxLength={255}
             valor={campo.state.value} onChange={campo.handleChange} errores={campo.state.meta.errors} />
         )}
       </form.Field>

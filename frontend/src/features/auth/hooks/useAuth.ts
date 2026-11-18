@@ -1,7 +1,7 @@
 import { notificarError } from "@/shared/api/notificarError";
 import { authApi } from "@/features/auth/services/auth";
 import { useAuthStore } from "@/features/auth/store/authStore";
-import type { RegistroDatos } from "@/features/auth/types/auth.types";
+import type { UserCreate } from "@/features/auth/types/auth.types";
 
 async function conAviso<T>(operacion: () => Promise<T>): Promise<T> {
   try {
@@ -20,12 +20,12 @@ export function useAuth() {
   return {
     user,
     checking,
-    login: (email: string, password: string) => conAviso(() => login(email, password)),
+    login: (username: string, password: string) => conAviso(() => login(username, password)),
     logout: () => conAviso(logout),
-    registrar: (datos: RegistroDatos) => conAviso(() => authApi.registrar(datos)),
+    registrar: (datos: UserCreate) => conAviso(() => authApi.registrar(datos)),
   };
 }
 
 export function useEsAdmin(): boolean {
-  return useAuthStore((state) => state.user?.roles.includes("admin") ?? false);
+  return useAuthStore((state) => !state.checking && state.user?.role === "admin");
 }

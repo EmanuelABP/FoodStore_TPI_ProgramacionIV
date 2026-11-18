@@ -1,4 +1,5 @@
 import axios from "axios";
+import type { AxiosRequestConfig } from "axios";
 import { axiosInstance } from "./api";
 
 export function mensajeApi(error: unknown): string {
@@ -28,21 +29,21 @@ async function conMensaje<T>(operacion: () => Promise<T>): Promise<T> {
   }
 }
 
-export function servicioCrud<Registro, Datos extends object>(coleccion: string) {
+export function servicioCrud<Registro, Datos extends object>(coleccion: string, config?: AxiosRequestConfig) {
   const detalle = (id: number) => coleccion.replace(/\/$/, "") + "/" + id;
 
   return {
     listar(signal: AbortSignal): Promise<Registro[]> {
-      return conMensaje(async () => (await axiosInstance.get<Registro[]>(coleccion, { signal })).data);
+      return conMensaje(async () => (await axiosInstance.get<Registro[]>(coleccion, { ...config, signal })).data);
     },
     crear(datos: Datos): Promise<Registro> {
-      return conMensaje(async () => (await axiosInstance.post<Registro>(coleccion, datos)).data);
+      return conMensaje(async () => (await axiosInstance.post<Registro>(coleccion, datos, config)).data);
     },
     actualizar(id: number, datos: Datos): Promise<Registro> {
-      return conMensaje(async () => (await axiosInstance.put<Registro>(detalle(id), datos)).data);
+      return conMensaje(async () => (await axiosInstance.put<Registro>(detalle(id), datos, config)).data);
     },
     eliminar(id: number): Promise<void> {
-      return conMensaje(async () => { await axiosInstance.delete(detalle(id)); });
+      return conMensaje(async () => { await axiosInstance.delete(detalle(id), config); });
     },
   };
 }

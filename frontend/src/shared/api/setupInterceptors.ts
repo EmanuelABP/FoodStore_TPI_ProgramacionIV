@@ -17,8 +17,8 @@ export function setupInterceptors() {
         const estado = error.response?.status;
         const cuentaDesactivada = estado === 400
           && error.response?.data?.detail === "Cuenta de usuario desactivada";
-        if ((estado === 401 || cuentaDesactivada)
-          && ruta !== "/api/v1/auth/token" && ruta !== "/api/v1/auth/me") {
+        const requiereSesion = ruta !== "/auth/token" && ruta !== "/auth/me";
+        if ((estado === 401 && requiereSesion) || cuentaDesactivada) {
           useAuthStore.getState().limpiarSesion();
         }
         if (estado === 403) {

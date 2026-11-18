@@ -5,7 +5,7 @@ import Toast from "@/shared/components/Toast";
 
 export default function App() {
   useEffect(() => {
-    void useAuthStore.getState().checkAuth();
+    void useAuthStore.getState().checkSession();
   }, []);
 
   return (

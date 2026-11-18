@@ -1,20 +1,21 @@
-export interface UsuarioAuth {
+export type Role = "user" | "admin";
+
+export interface UserPublic {
   id: number;
-  nombre: string;
-  apellido: string;
+  username: string;
+  full_name: string;
   email: string;
-  celular: string | null;
-  roles: string[];
-  deleted_at: string | null;
+  role: Role;
+  disabled: boolean;
+  created_at: string;
 }
 
 export interface LoginDatos {
-  email: string;
+  username: string;
   password: string;
 }
 
-export interface RegistroDatos extends LoginDatos {
-  nombre: string;
-  apellido: string;
-  celular?: string;
+export interface UserCreate extends LoginDatos {
+  full_name: string;
+  email: string;
 }

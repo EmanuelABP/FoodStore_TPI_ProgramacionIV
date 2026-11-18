@@ -26,7 +26,7 @@ export default function AppRouter() {
           <Route path="/productos" element={<Navigate to="/products" replace />} />
         </Route>
         <Route element={<ProtectedRoute allowedRoles={["admin"]} />}>
-          <Route path="/admin/users" element={<AdminUsersPage />} />
+          <Route path="/admin/usuarios" element={<AdminUsersPage />} />
         </Route>
       </Routes>
     </>

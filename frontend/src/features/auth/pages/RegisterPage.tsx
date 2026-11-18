@@ -12,13 +12,13 @@ export default function RegisterPage() {
   const { registrar } = useAuth();
   const [error, setError] = useState("");
   const form = useForm({
-    defaultValues: { nombre: "", apellido: "", email: "", celular: "", password: "" },
+    defaultValues: { username: "", full_name: "", email: "", password: "" },
     onSubmit: async ({ value }) => {
       setError("");
       try {
         await registrar({
-          nombre: value.nombre.trim(), apellido: value.apellido.trim(), email: value.email.trim(),
-          celular: value.celular.trim() || undefined, password: value.password,
+          username: value.username.trim(), full_name: value.full_name.trim(),
+          email: value.email.trim(), password: value.password,
         });
         navigate("/login", { replace: true });
       } catch (error) {
@@ -29,31 +29,25 @@ export default function RegisterPage() {
 
   return (
     <AuthForm titulo="Crear cuenta" onSubmit={() => { void form.handleSubmit(); }}>
-      <form.Field name="nombre" validators={{ onSubmit: ({ value }) => value.trim() ? undefined : "Ingresá el nombre." }}>
+      <form.Field name="username" validators={{ onSubmit: ({ value }) => value.trim() ? undefined : "Ingresá un nombre de usuario." }}>
         {(campo) => (
-          <CampoCatalogo nombre={campo.name} etiqueta="Nombre" tipo="text" autoComplete="given-name" maxLength={80}
+          <CampoCatalogo nombre={campo.name} etiqueta="Usuario" autoComplete="username" maxLength={255}
             valor={campo.state.value} onChange={campo.handleChange} errores={campo.state.meta.errors} />
         )}
       </form.Field>
-      <form.Field name="apellido" validators={{ onSubmit: ({ value }) => value.trim() ? undefined : "Ingresá el apellido." }}>
+      <form.Field name="full_name" validators={{ onSubmit: ({ value }) => value.trim() ? undefined : "Ingresá tu nombre completo." }}>
         {(campo) => (
-          <CampoCatalogo nombre={campo.name} etiqueta="Apellido" tipo="text" autoComplete="family-name" maxLength={80}
+          <CampoCatalogo nombre={campo.name} etiqueta="Nombre completo" autoComplete="name"
             valor={campo.state.value} onChange={campo.handleChange} errores={campo.state.meta.errors} />
         )}
       </form.Field>
       <form.Field name="email" validators={{ onSubmit: ({ value }) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim()) ? undefined : "Ingresá un email válido." }}>
         {(campo) => (
-          <CampoCatalogo nombre={campo.name} etiqueta="Email" tipo="email" autoComplete="username" maxLength={254}
+          <CampoCatalogo nombre={campo.name} etiqueta="Email" tipo="email" autoComplete="email" maxLength={254}
             valor={campo.state.value} onChange={campo.handleChange} errores={campo.state.meta.errors} />
         )}
       </form.Field>
-      <form.Field name="celular">
-        {(campo) => (
-          <CampoCatalogo nombre={campo.name} etiqueta="Celular (opcional)" tipo="tel" autoComplete="tel" maxLength={20}
-            valor={campo.state.value} onChange={campo.handleChange} errores={campo.state.meta.errors} />
-        )}
-      </form.Field>
-      <form.Field name="password" validators={{ onSubmit: ({ value }) => value.length >= 8 && new TextEncoder().encode(value).length <= 72 ? undefined : "Ingresá al menos 8 caracteres y hasta 72 bytes." }}>
+      <form.Field name="password" validators={{ onSubmit: ({ value }) => [...value].length >= 8 && new TextEncoder().encode(value).length <= 72 ? undefined : "Ingresá al menos 8 caracteres y hasta 72 bytes." }}>
         {(campo) => (
           <CampoCatalogo nombre={campo.name} etiqueta="Contraseña" tipo="password" autoComplete="new-password"
             valor={campo.state.value} onChange={campo.handleChange} errores={campo.state.meta.errors} />
