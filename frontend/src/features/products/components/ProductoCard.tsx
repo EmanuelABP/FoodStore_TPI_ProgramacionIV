@@ -1,3 +1,4 @@
+import ProductoImagen from "./ProductoImagen";
 import type { ProductoRead } from "@/features/products/types/producto";
 import { useCartStore } from "@/store/cartStore";
 
@@ -8,10 +9,7 @@ export default function ProductoCard({ producto }: { producto: ProductoRead }) {
 
   return (
     <article className="flex flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
-      {producto.imagen_url && (
-        <img src={producto.imagen_url} alt={producto.nombre} loading="lazy"
-          className="aspect-video w-full object-cover" />
-      )}
+      <ProductoImagen url={producto.imagen_url} nombre={producto.nombre} />
       <div className="flex flex-1 flex-col gap-3 p-5">
         <div>
           <p className="text-sm text-slate-600 dark:text-slate-300">{producto.categoria.nombre}</p>

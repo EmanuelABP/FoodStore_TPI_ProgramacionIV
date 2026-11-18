@@ -1,3 +1,6 @@
+import { useState } from "react";
+import ConfirmarAccion from "@/shared/components/ConfirmarAccion";
+import ProductoImagen from "../components/ProductoImagen";
 import type { ColumnDef } from "@tanstack/react-table";
 import { useCategoriesList } from "@/features/categories";
 import TablaCatalogo from "@/shared/components/TablaCatalogo";
@@ -7,6 +10,8 @@ import type { ProductoRead } from "@/features/products/types/producto";
 import { useProducts } from "@/features/products/hooks/useProducts";
 
 const columnas: ColumnDef<ProductoRead>[] = [
+  { id: "imagen", header: "Imagen", enableSorting: false,
+    cell: ({ row }) => <ProductoImagen url={row.original.imagen_url} nombre={row.original.nombre} miniatura /> },
   { accessorKey: "nombre", header: "Nombre" },
   { accessorFn: (producto) => producto.categoria.nombre, id: "categoria", header: "Categoría",
     cell: ({ row }) => row.original.categoria.nombre + (row.original.categoria.activo ? "" : " (inactiva)") },
@@ -20,6 +25,7 @@ const columnas: ColumnDef<ProductoRead>[] = [
 export default function AdminProductosPage() {
   const { catalogo, productoStock, abrirStock, cerrarStock, guardarStock, guardandoStock, errorStock } = useProducts();
   const { listado } = catalogo;
+  const [baja, setBaja] = useState<ProductoRead | null>(null);
   const categorias = useCategoriesList(catalogo.abierto);
   const ocupado = catalogo.ocupado || guardandoStock;
 
@@ -39,7 +45,7 @@ export default function AdminProductosPage() {
           listado.isError ? <ErrorMensaje mensaje={listado.error.message} /> :
           listado.data.length === 0 ? <Vacio mensaje="No hay productos activos." /> : (
             <TablaCatalogo registros={listado.data} columnas={columnas} titulo="Productos"
-              ocupado={ocupado} puedeEditar onEditar={catalogo.abrir} onEliminar={catalogo.eliminar}
+              ocupado={ocupado} puedeEditar onEditar={catalogo.abrir} onEliminar={(id) => setBaja(listado.data?.find((producto) => producto.id === id) ?? null)}
               accionesVerticales accionesExtra={(producto) => (
                 <button className="btn-secundario" type="button" disabled={ocupado}
                   onClick={() => abrirStock(producto)}>Stock</button>
@@ -47,6 +53,17 @@ export default function AdminProductosPage() {
           )}
       </div>
 
+      {baja && (
+        <ConfirmarAccion titulo="Dar de baja producto" confirmar="Dar de baja" peligro
+          ocupado={ocupado} error={catalogo.errorBaja} onCerrar={() => setBaja(null)}
+          onConfirmar={async () => {
+            try { await catalogo.eliminar(baja.id); setBaja(null); }
+            catch { /* El modal muestra el error de la mutación. */ }
+          }}>
+          <p>¿Querés dar de baja «<strong className="break-words">{baja.nombre}</strong>»?</p>
+          <p>El producto dejará de aparecer en el catálogo público. Sus datos históricos permanecerán disponibles en los pedidos.</p>
+        </ConfirmarAccion>
+      )}
       {catalogo.abierto && (
         <ProductoModal registro={catalogo.seleccionado} ocupado={catalogo.ocupado}
           categorias={categorias.data ?? []} cargandoCategorias={categorias.isPending}

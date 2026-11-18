@@ -32,8 +32,12 @@ export default function AdminCategoriasPage() {
       </div>
       {baja && (
         <ConfirmarAccion titulo="Dar de baja categoría" confirmar="Dar de baja" peligro
+          ocupado={catalogo.ocupado} error={catalogo.errorBaja}
           onCerrar={() => setBaja(null)}
-          onConfirmar={() => { catalogo.eliminar(baja.id, true); setBaja(null); }}>
+          onConfirmar={async () => {
+            try { await catalogo.eliminar(baja.id); setBaja(null); }
+            catch { /* El modal muestra el error de la mutación. */ }
+          }}>
           <p>Se desactivará la categoría <strong className="break-words">{baja.nombre}</strong>.</p>
           <p>Los productos activos de esta categoría seguirán visibles en el catálogo general.</p>
         </ConfirmarAccion>

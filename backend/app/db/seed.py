@@ -1,5 +1,3 @@
-from urllib.parse import quote
-
 from sqlalchemy.dialects.postgresql import insert
 from sqlmodel import Session
 
@@ -40,6 +38,20 @@ CATALOGO_DEMO = {
 }
 
 
+# Fotografías ilustrativas de Pexels, https://www.pexels.com/license/
+# Cada ID identifica una fotografía fija. El seed conserva los registros existentes.
+IMAGENES_DEMO = {
+    "Hamburguesa clásica": "https://images.pexels.com/photos/10500520/pexels-photo-10500520.jpeg?auto=compress&cs=tinysrgb&w=960",
+    "Hamburguesa con cheddar": "https://images.pexels.com/photos/15226134/pexels-photo-15226134.jpeg?auto=compress&cs=tinysrgb&w=960",
+    "Hamburguesa de lentejas": "https://images.pexels.com/photos/8472241/pexels-photo-8472241.jpeg?auto=compress&cs=tinysrgb&w=960",
+    "Pizza muzzarella": "https://images.pexels.com/photos/10880324/pexels-photo-10880324.jpeg?auto=compress&cs=tinysrgb&w=960",
+    "Pizza napolitana": "https://images.pexels.com/photos/6223177/pexels-photo-6223177.jpeg?auto=compress&cs=tinysrgb&w=960",
+    "Pizza fugazzeta": "https://images.pexels.com/photos/17637066/pexels-photo-17637066.png?auto=compress&cs=tinysrgb&w=960",
+    "Papas fritas": "https://images.pexels.com/photos/6975532/pexels-photo-6975532.jpeg?auto=compress&cs=tinysrgb&w=960",
+    "Aros de cebolla": "https://images.pexels.com/photos/34528321/pexels-photo-34528321.jpeg?auto=compress&cs=tinysrgb&w=960",
+}
+
+
 def sembrar_catalogo(session: Session) -> None:
     categorias = CategoriaRepository(session)
     productos = ProductoRepository(session)
@@ -62,7 +74,7 @@ def sembrar_catalogo(session: Session) -> None:
                     nombre=nombre_producto,
                     descripcion=detalle,
                     precio_base=precio,
-                    imagen_url=f"https://placehold.co/600x400?text={quote(nombre_producto)}",
+                    imagen_url=IMAGENES_DEMO[nombre_producto],
                     stock=stock,
                 ))
 

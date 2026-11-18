@@ -37,7 +37,7 @@ Content-Type: application/json
 POST {{base}}/productos
 Content-Type: application/json
 
-{"nombre":"Pizza {{lote}}","descripcion":"Masa artesanal","precio_base":12000,"imagen_url":"https://example.com/pizza.jpg","stock":12,"categoria_id":{{categoria.response.body.$.id}}}
+{"nombre":"Pizza {{lote}}","descripcion":"Masa artesanal","precio_base":12000,"imagen_url":"https://images.pexels.com/photos/10880324/pexels-photo-10880324.jpeg?auto=compress&cs=tinysrgb&w=960","stock":12,"categoria_id":{{categoria.response.body.$.id}}}
 
 ### 8 Admitir el mismo nombre en otro producto (201)
 # @name otroProducto

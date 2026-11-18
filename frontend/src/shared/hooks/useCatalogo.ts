@@ -94,12 +94,12 @@ export function useCatalogo<Registro extends Datos & { id: number }, Datos exten
     }
   }
 
-  function eliminar(id: number, confirmado = false) {
-    if (ocupado || (!confirmado && !window.confirm("¿Querés dar de baja este registro?"))) return;
+  async function eliminar(id: number) {
+    if (ocupado) return;
     alta.reset();
     edicion.reset();
     setErrorDetalle("");
-    baja.mutate(id);
+    await baja.mutateAsync(id);
   }
 
   return {

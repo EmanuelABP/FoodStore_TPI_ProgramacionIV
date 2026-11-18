@@ -1,3 +1,4 @@
+import ConfirmarAccion from "@/shared/components/ConfirmarAccion";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Cargando, ErrorMensaje, Vacio } from "@/shared/components/EstadoListado";
@@ -12,11 +13,14 @@ const limite = 20;
 export default function MisPedidosPage() {
   const [pagina, setPagina] = useState(0);
   const [detalleId, setDetalleId] = useState<number | null>(null);
+  const [cancelarId, setCancelarId] = useState<number | null>(null);
   const pedidos = usePedidos({ skip: pagina * limite, limit: limite }, true);
   const cancelacion = useCancelarPedido();
 
   function cancelar(id: number) {
-    if (!cancelacion.isPending && window.confirm(`¿Cancelar el pedido #${id}?`)) cancelacion.mutate(id);
+    if (cancelacion.isPending) return;
+    cancelacion.reset();
+    setCancelarId(id);
   }
 
   return (
@@ -48,6 +52,17 @@ export default function MisPedidosPage() {
         ) : <Vacio mensaje="No hay pedidos en esta página." />}
       <PaginacionPedidos pagina={pagina} limite={limite} total={pedidos.data?.total ?? 0}
         cargando={pedidos.isPending} onPagina={setPagina} />
+      {cancelarId !== null && (
+        <ConfirmarAccion titulo={`Cancelar pedido #${cancelarId}`} confirmar="Cancelar pedido" cancelarTexto="Volver" peligro
+          ocupado={cancelacion.isPending} error={cancelacion.error?.message} onCerrar={() => setCancelarId(null)}
+          onConfirmar={async () => {
+            try { await cancelacion.mutateAsync(cancelarId); setCancelarId(null); }
+            catch { /* El modal muestra el error y la consulta se refresca. */ }
+          }}>
+          <p>¿Querés cancelar este pedido?</p>
+          <p>La cancelación restituirá el stock de sus productos y no podrá revertirse.</p>
+        </ConfirmarAccion>
+      )}
       {detalleId !== null && <DetallePedido id={detalleId} propio onCerrar={() => setDetalleId(null)} />}
       <Link to="/" className="inline-block text-blue-700 underline dark:text-blue-300">Volver al catálogo</Link>
     </main>

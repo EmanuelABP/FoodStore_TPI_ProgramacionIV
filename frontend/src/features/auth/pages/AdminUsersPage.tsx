@@ -1,4 +1,5 @@
-import { useMemo } from "react";
+import ConfirmarAccion from "@/shared/components/ConfirmarAccion";
+import { useMemo, useState } from "react";
 import { flexRender, getCoreRowModel, useReactTable } from "@tanstack/react-table";
 import type { ColumnDef } from "@tanstack/react-table";
 import { Cargando, ErrorMensaje, Vacio } from "@/shared/components/EstadoListado";
@@ -84,6 +85,14 @@ function TablaUsuarios({ usuarios, idActual, ocupado, onCambiarEstado }: TablaUs
 
 export default function AdminUsersPage() {
   const { usuarios, cambiarEstado, idActual } = useAdminUsers();
+  const [desactivar, setDesactivar] = useState<UserPublic | null>(null);
+
+  function solicitarCambio(datos: { id: number; activo: boolean }) {
+    if (cambiarEstado.isPending) return;
+    if (datos.activo) { cambiarEstado.mutate(datos); return; }
+    cambiarEstado.reset();
+    setDesactivar(usuarios.data?.find((usuario) => usuario.id === datos.id) ?? null);
+  }
 
   return (
     <main className="mx-auto max-w-6xl space-y-5 px-6 py-10">
@@ -93,8 +102,20 @@ export default function AdminUsersPage() {
         usuarios.isError ? <ErrorMensaje mensaje={mensajeApi(usuarios.error)} /> :
         usuarios.data.length === 0 ? <Vacio mensaje="No hay usuarios." /> : (
           <TablaUsuarios usuarios={usuarios.data} idActual={idActual} ocupado={cambiarEstado.isPending}
-            onCambiarEstado={cambiarEstado.mutate} />
+            onCambiarEstado={solicitarCambio} />
         )}
+      {desactivar && (
+        <ConfirmarAccion titulo="Desactivar usuario" confirmar="Desactivar" peligro
+          ocupado={cambiarEstado.isPending} error={cambiarEstado.error ? mensajeApi(cambiarEstado.error) : undefined}
+          onCerrar={() => setDesactivar(null)}
+          onConfirmar={async () => {
+            try { await cambiarEstado.mutateAsync({ id: desactivar.id, activo: false }); setDesactivar(null); }
+            catch { /* El modal muestra el error de la operación. */ }
+          }}>
+          <p>¿Querés desactivar la cuenta de <strong className="break-words">{desactivar.full_name} ({desactivar.username})</strong>?</p>
+          <p>El usuario no podrá autenticarse mientras su cuenta permanezca desactivada.</p>
+        </ConfirmarAccion>
+      )}
     </main>
   );
 }

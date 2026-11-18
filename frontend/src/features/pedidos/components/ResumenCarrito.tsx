@@ -1,4 +1,5 @@
 import type { CartItem } from "@/store/cartStore";
+import { ProductoImagen } from "@/features/products";
 import type { ProductoRead } from "@/features/products";
 import { importe } from "../formato";
 
@@ -24,11 +25,14 @@ export default function ResumenCarrito({ lineas, total, onCantidad, onQuitar }: 
           const stock = producto?.stock ?? 0;
           return (
             <li key={item.producto_id} className="flex flex-wrap items-center justify-between gap-4 py-4 first:pt-0">
-              <div className="min-w-0 max-w-full importe">
-                <h2 className="font-semibold">{producto?.nombre ?? item.nombre}</h2>
-                <p className="text-sm">{importe(precio)} por unidad · {item.cantidad} {item.cantidad === 1 ? "unidad" : "unidades"}</p>
-                {producto && <p className="text-sm text-slate-600 dark:text-slate-300">Stock disponible: {stock}</p>}
-                {problema && <p className="text-sm text-red-700 dark:text-red-300">{problema}</p>}
+              <div className="flex min-w-0 flex-1 basis-full items-start gap-3 sm:basis-auto">
+                <ProductoImagen url={producto?.imagen_url} nombre={producto?.nombre ?? item.nombre} miniatura />
+                <div className="min-w-0 max-w-full importe">
+                  <h2 className="font-semibold">{producto?.nombre ?? item.nombre}</h2>
+                  <p className="text-sm">{importe(precio)} por unidad · {item.cantidad} {item.cantidad === 1 ? "unidad" : "unidades"}</p>
+                  {producto && <p className="text-sm text-slate-600 dark:text-slate-300">Stock disponible: {stock}</p>}
+                  {problema && <p className="text-sm text-red-700 dark:text-red-300">{problema}</p>}
+                </div>
               </div>
               <div className="flex min-w-0 max-w-full flex-wrap items-center gap-2">
                 {onCantidad && (

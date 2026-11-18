@@ -2,7 +2,10 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @layer base {
-  body { @apply bg-slate-50 dark:bg-slate-950 dark:text-slate-100; }
+  body {
+    @apply bg-slate-50 dark:bg-slate-950 dark:text-slate-100;
+    padding-bottom: calc(2.5rem + env(safe-area-inset-bottom));
+  }
   :root.dark { color-scheme: dark; }
 }
 @layer components {

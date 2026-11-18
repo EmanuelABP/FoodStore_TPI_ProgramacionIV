@@ -15,14 +15,17 @@ export default function AdminPedidosPage() {
   const [pagina, setPagina] = useState(0);
   const [estado, setEstado] = useState<EstadoPedido>();
   const [detalleId, setDetalleId] = useState<number | null>(null);
-  const [entregaId, setEntregaId] = useState<number | null>(null);
+  const [accion, setAccion] = useState<{ id: number; estado: "ENTREGADO" | "CANCELADO" } | null>(null);
   const pedidos = usePedidos({ skip: pagina * limite, limit: limite, estado }, false);
   const cambio = useCambiarEstadoPedido();
 
   function cambiar(id: number, estado: EstadoPedido) {
     if (cambio.isPending) return;
-    if (estado === "CANCELADO" && !window.confirm(`¿Cancelar el pedido #${id} y restituir el stock?`)) return;
-    if (estado === "ENTREGADO") { setEntregaId(id); return; }
+    if (estado === "CANCELADO" || estado === "ENTREGADO") {
+      cambio.reset();
+      setAccion({ id, estado });
+      return;
+    }
     cambio.mutate({ id, datos: { estado } });
   }
 
@@ -48,14 +51,21 @@ export default function AdminPedidosPage() {
         ) : <Vacio mensaje="No hay pedidos para los filtros actuales." />}
       <PaginacionPedidos pagina={pagina} limite={limite} total={pedidos.data?.total ?? 0}
         cargando={pedidos.isPending} onPagina={setPagina} />
-      {entregaId !== null && (
-        <ConfirmarAccion titulo="Confirmar entrega" confirmar="Marcar como entregado"
-          onCerrar={() => setEntregaId(null)}
-          onConfirmar={() => {
-            cambio.mutate({ id: entregaId, datos: { estado: "ENTREGADO" } });
-            setEntregaId(null);
+      {accion && (
+        <ConfirmarAccion titulo={accion.estado === "CANCELADO" ? `Cancelar pedido #${accion.id}` : "Confirmar entrega"}
+          confirmar={accion.estado === "CANCELADO" ? "Cancelar pedido" : "Marcar como entregado"}
+          cancelarTexto={accion.estado === "CANCELADO" ? "Volver" : "Cancelar"} peligro={accion.estado === "CANCELADO"}
+          ocupado={cambio.isPending} error={cambio.error?.message} onCerrar={() => setAccion(null)}
+          onConfirmar={async () => {
+            try { await cambio.mutateAsync({ id: accion.id, datos: { estado: accion.estado } }); setAccion(null); }
+            catch { /* El modal muestra el error y la consulta se refresca. */ }
           }}>
-          <p>El pedido #{entregaId} pasará a ENTREGADO. Este estado es terminal y no puede revertirse.</p>
+          {accion.estado === "CANCELADO" ? (
+            <>
+              <p>¿Querés cancelar este pedido?</p>
+              <p>La cancelación restituirá el stock de sus productos y no podrá revertirse.</p>
+            </>
+          ) : <p>El pedido #{accion.id} pasará a ENTREGADO. Este estado es terminal y no puede revertirse.</p>}
         </ConfirmarAccion>
       )}
       {detalleId !== null && <DetallePedido id={detalleId} propio={false} onCerrar={() => setDetalleId(null)} />}
