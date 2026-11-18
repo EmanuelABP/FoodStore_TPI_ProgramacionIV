@@ -1,7 +1,11 @@
 from datetime import datetime, timezone
+from typing import TYPE_CHECKING
 
 from sqlalchemy import CheckConstraint, DateTime
-from sqlmodel import Field, SQLModel
+from sqlmodel import Field, Relationship, SQLModel
+
+if TYPE_CHECKING:
+    from app.modules.usuarios.models import Usuario
 
 
 class Pedido(SQLModel, table=True):
@@ -16,6 +20,8 @@ class Pedido(SQLModel, table=True):
     estado: str = Field(default="PENDIENTE", foreign_key="estados_pedido.codigo")
     total: float = 0.0
     deleted_at: datetime | None = Field(default=None, sa_type=DateTime(timezone=True))
+
+    usuario: "Usuario" = Relationship(back_populates="pedidos")
 
 
 class DetallePedido(SQLModel, table=True):

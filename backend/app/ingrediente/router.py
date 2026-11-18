@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, Response
 from sqlmodel import Session
 
 from app.core.database import get_session
-from app.core.security import get_current_active_user, solo_admin
+from app.core.deps import get_current_active_user, solo_admin
 from app.ingrediente import service
 from app.ingrediente.schema import IngredienteDatos, IngredienteRead
 

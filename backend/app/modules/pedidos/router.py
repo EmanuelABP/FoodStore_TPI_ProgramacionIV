@@ -1,7 +1,7 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Response
-from app.core.security import get_current_active_user, require_role, solo_admin
+from app.core.deps import get_current_active_user, require_role, solo_admin
 from app.modules.usuarios.models import Usuario
 
 from app.modules.pedidos import service

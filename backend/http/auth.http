@@ -1,101 +1,204 @@
-# Ejecutar en orden en una base de prueba. Completar las credenciales del administrador.
-# Si repito las altas, cambio el email de prueba.
-@baseUrl = http://localhost:8000
-@email = cliente.tp9@example.com
-@clave = FoodStore-Prueba9
-@adminEmail = admin@foodstore.com
-@adminPassword = REEMPLAZAR_CON_CLAVE_DE_PRUEBA
 
-### Eliminar una sesión anterior (204)
-POST {{baseUrl}}/api/v1/auth/logout
+# TPI Programación IV — Pruebas de autenticación y usuarios
+# Ejecutar en orden sobre una base PostgreSQL de prueba
+# inicializada mediante: python -m app.db.seed
+#
+# IMPORTANTE:
+# - Mantener habilitada la conservación de cookies en REST Client.
+# - Ejecutar cada solicitud con "Send Request", de arriba hacia abajo.
+# - Comparar los códigos HTTP con los indicados en los comentarios.
+# - Para repetir el registro, cambiar @cliente y @email.
+# - Utilizar únicamente credenciales de demostración.
 
-### Perfil sin sesión (401)
-GET {{baseUrl}}/api/v1/auth/me
+@baseUrl = http://localhost:8000/api/v1
+@cliente = cliente-demo
+@email = cliente.tpi@example.com
+@clave = FoodStore-PruebaTPI
+@admin = admin
+@adminPassword = Admin1234!
 
-### Catálogo sin sesión (401)
-GET {{baseUrl}}/categorias/
 
-### Registrar cliente (201)
-# @name cliente
-POST {{baseUrl}}/api/v1/auth/register
+### 01. Cerrar cualquier sesión anterior (200)
+POST {{baseUrl}}/auth/logout
+
+
+### 02. Perfil sin cookie (401)
+GET {{baseUrl}}/auth/me
+
+
+### 03. Perfil con cookie inválida (401)
+GET {{baseUrl}}/auth/me
+Cookie: access_token=token-invalido
+
+
+### 04. Registrar cliente (201)
+# Comprobar que role sea "user" aunque se envíe "admin".
+# Verificar que la respuesta no incluya hashed_password.
+# @name clienteRegistrado
+POST {{baseUrl}}/auth/register
 Content-Type: application/json
 
-{"nombre":"Cliente","apellido":"Prueba","email":"{{email}}","password":"{{clave}}"}
+{
+  "username": "{{cliente}}",
+  "full_name": "Cliente de prueba",
+  "email": "{{email}}",
+  "password": "{{clave}}",
+  "role": "admin"
+}
 
-### Email duplicado (409)
-POST {{baseUrl}}/api/v1/auth/register
+
+### 05. Username duplicado con otro email (409)
+POST {{baseUrl}}/auth/register
 Content-Type: application/json
 
-{"nombre":"Cliente","apellido":"Prueba","email":"{{email}}","password":"{{clave}}"}
+{
+  "username": "{{cliente}}",
+  "full_name": "Otro Cliente",
+  "email": "otro-{{email}}",
+  "password": "{{clave}}"
+}
 
-### Email inválido (422)
-POST {{baseUrl}}/api/v1/auth/register
+
+### 06. Email duplicado con otro username (409)
+POST {{baseUrl}}/auth/register
 Content-Type: application/json
 
-{"nombre":"Cliente","apellido":"Prueba","email":"invalido","password":"{{clave}}"}
+{
+  "username": "{{cliente}}-otro",
+  "full_name": "Otro Cliente",
+  "email": "{{email}}",
+  "password": "{{clave}}"
+}
 
-### Contraseña corta (422)
-POST {{baseUrl}}/api/v1/auth/register
+
+### 07. Email inválido (422)
+POST {{baseUrl}}/auth/register
 Content-Type: application/json
 
-{"nombre":"Cliente","apellido":"Prueba","email":"{{email}}","password":"123"}
+{
+  "username": "{{cliente}}-invalido",
+  "full_name": "Cliente de prueba",
+  "email": "invalido",
+  "password": "{{clave}}"
+}
 
-### Credenciales incorrectas (401)
-POST {{baseUrl}}/api/v1/auth/token
+
+### 08. Contraseña menor a ocho caracteres (422)
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+  "username": "{{cliente}}-corto",
+  "full_name": "Cliente de prueba",
+  "email": "{{email}}",
+  "password": "1234567"
+}
+
+
+### 09. Contraseña incorrecta (401)
+POST {{baseUrl}}/auth/token
 Content-Type: application/x-www-form-urlencoded
 
-username={{email}}&password=incorrecta
+username={{cliente}}&password=incorrecta
 
-### Login cliente, revisar Set-Cookie HttpOnly (204)
-POST {{baseUrl}}/api/v1/auth/token
+
+### 10. Login con email en lugar de username (401)
+POST {{baseUrl}}/auth/token
 Content-Type: application/x-www-form-urlencoded
 
 username={{email}}&password={{clave}}
 
-### Consultar perfil con rol user (200)
-GET {{baseUrl}}/api/v1/auth/me
 
-### Leer productos (200)
-GET {{baseUrl}}/productos/
-
-### Escritura de un user (403)
-POST {{baseUrl}}/categorias/
-Content-Type: application/json
-
-{"nombre":"Categoría de prueba"}
-
-### Acceso a la administración como user (403)
-GET {{baseUrl}}/api/v1/auth/admin/usuarios
-
-### Login administrador (204)
-POST {{baseUrl}}/api/v1/auth/token
+### 11. Login correcto del cliente (200)
+# Comprobar: {"message": "Login exitoso"}
+# Revisar Set-Cookie: access_token con HttpOnly.
+# El JWT no debe aparecer en el cuerpo de respuesta.
+POST {{baseUrl}}/auth/token
 Content-Type: application/x-www-form-urlencoded
 
-username={{adminEmail}}&password={{adminPassword}}
+username={{cliente}}&password={{clave}}
 
-### Listar usuarios (200)
-GET {{baseUrl}}/api/v1/auth/admin/usuarios
 
-### Desactivar al cliente (200)
-POST {{baseUrl}}/api/v1/auth/admin/usuarios/{{cliente.response.body.$.id}}/desactivar
+### 12. Perfil con sesión de cliente (200)
+# Debe mostrar role: "user" y disabled: false.
+GET {{baseUrl}}/auth/me
 
-### Login de una cuenta desactivada (400)
-POST {{baseUrl}}/api/v1/auth/token
+
+### 13. Administración con rol user (403)
+GET {{baseUrl}}/admin/usuarios
+
+
+### 14. Login del administrador de demostración (200)
+POST {{baseUrl}}/auth/token
 Content-Type: application/x-www-form-urlencoded
 
-username={{email}}&password={{clave}}
+username={{admin}}&password={{adminPassword}}
 
-### Reactivar al cliente (200)
-POST {{baseUrl}}/api/v1/auth/admin/usuarios/{{cliente.response.body.$.id}}/activar
 
-### Login cliente reactivado (204)
-POST {{baseUrl}}/api/v1/auth/token
+### 15. Perfil del administrador (200)
+# @name administrador
+GET {{baseUrl}}/auth/me
+
+
+### 16. Listar usuarios como administrador (200)
+GET {{baseUrl}}/admin/usuarios
+
+
+### 17. Intentar activar un usuario inexistente (404)
+POST {{baseUrl}}/admin/usuarios/2147483647/activar
+
+
+### 18. Rechazar la autodesactivación del admin (400)
+POST {{baseUrl}}/admin/usuarios/{{administrador.response.body.$.id}}/desactivar
+
+
+### 19. Desactivar al cliente (200)
+# Comprobar disabled: true.
+POST {{baseUrl}}/admin/usuarios/{{clienteRegistrado.response.body.$.id}}/desactivar
+
+
+### 20. Repetir la desactivación (200)
+# Debe ser idempotente y conservar disabled: true.
+POST {{baseUrl}}/admin/usuarios/{{clienteRegistrado.response.body.$.id}}/desactivar
+
+
+### 21. Login de cuenta desactivada (400)
+POST {{baseUrl}}/auth/token
 Content-Type: application/x-www-form-urlencoded
 
-username={{email}}&password={{clave}}
+username={{cliente}}&password={{clave}}
 
-### Cerrar sesión (204)
-POST {{baseUrl}}/api/v1/auth/logout
 
-### Perfil tras cerrar sesión (401)
-GET {{baseUrl}}/api/v1/auth/me
+### 22. Recuperar sesión del administrador (200)
+# Repetimos el login para asegurar una sesión administrativa
+# válida después del intento fallido del cliente.
+POST {{baseUrl}}/auth/token
+Content-Type: application/x-www-form-urlencoded
+
+username={{admin}}&password={{adminPassword}}
+
+
+### 23. Reactivar al cliente (200)
+# Comprobar disabled: false.
+POST {{baseUrl}}/admin/usuarios/{{clienteRegistrado.response.body.$.id}}/activar
+
+
+### 24. Repetir la activación (200)
+# Debe ser idempotente y conservar disabled: false.
+POST {{baseUrl}}/admin/usuarios/{{clienteRegistrado.response.body.$.id}}/activar
+
+
+### 25. Login del cliente reactivado (200)
+POST {{baseUrl}}/auth/token
+Content-Type: application/x-www-form-urlencoded
+
+username={{cliente}}&password={{clave}}
+
+
+### 26. Cerrar sesión (200)
+# Comprobar que Set-Cookie elimine access_token.
+POST {{baseUrl}}/auth/logout
+
+
+### 27. Perfil después del logout (401)
+GET {{baseUrl}}/auth/me

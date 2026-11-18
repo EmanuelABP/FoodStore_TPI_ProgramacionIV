@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, Query, Response, status
 from sqlmodel import Session
 
 from app.core.database import get_session
-from app.core.security import UsuarioActivo, get_current_active_user, solo_admin
+from app.core.deps import UsuarioActivo, get_current_active_user, solo_admin
 from app.categoria.schema import (
     CategoriaCreate,
     CategoriaUpdate,
@@ -30,7 +30,7 @@ def listar_categorias(
     incluir_inactivos: bool = False,
 ):
     if incluir_inactivos:
-        solo_admin(usuario, session)
+        solo_admin(usuario)
     return service.listar_categorias(
         session, offset=offset, limit=limit, nombre=nombre, incluir_inactivos=incluir_inactivos,
     )

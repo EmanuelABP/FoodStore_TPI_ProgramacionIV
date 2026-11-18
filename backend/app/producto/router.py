@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, Query, Response, status
 from sqlmodel import Session
 
 from app.core.database import get_session
-from app.core.security import get_current_active_user, solo_admin
+from app.core.deps import get_current_active_user, solo_admin
 from app.producto.schema import (
     CategoriaProductoRead,
     ProductoCategoriaCreate,

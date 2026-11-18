@@ -1,7 +1,13 @@
 from datetime import datetime, timezone
+from typing import TYPE_CHECKING, Literal
 
-from sqlalchemy import DateTime
-from sqlmodel import Field, SQLModel
+from sqlalchemy import CheckConstraint, DateTime, String, UniqueConstraint
+from sqlmodel import Field, Relationship, SQLModel
+
+if TYPE_CHECKING:
+    from app.modules.pedidos.models import Pedido
+
+Role = Literal["user", "admin"]
 
 
 def ahora() -> datetime:
@@ -10,31 +16,19 @@ def ahora() -> datetime:
 
 class Usuario(SQLModel, table=True):
     __tablename__ = "usuarios"
+    __table_args__ = (
+        UniqueConstraint("username", name="uq_usuarios_username"),
+        UniqueConstraint("email", name="uq_usuarios_email"),
+        CheckConstraint("role IN ('user', 'admin')", name="ck_usuarios_role"),
+    )
 
     id: int | None = Field(default=None, primary_key=True)
-    nombre: str = Field(max_length=80)
-    apellido: str = Field(max_length=80)
-    email: str = Field(unique=True, max_length=254)
-    celular: str | None = Field(default=None, max_length=20)
-    password_hash: str = Field(max_length=60)
+    username: str = Field(max_length=255)
+    full_name: str
+    email: str = Field(max_length=254)
+    hashed_password: str = Field(max_length=60)
+    role: Role = Field(default="user", sa_type=String(5))
+    disabled: bool = False
     created_at: datetime = Field(default_factory=ahora, sa_type=DateTime(timezone=True))
-    updated_at: datetime = Field(default_factory=ahora, sa_type=DateTime(timezone=True))
-    deleted_at: datetime | None = Field(default=None, sa_type=DateTime(timezone=True))
 
-
-class Rol(SQLModel, table=True):
-    __tablename__ = "roles"
-
-    id: int | None = Field(default=None, primary_key=True)
-    nombre: str = Field(unique=True, max_length=50)
-    descripcion: str
-
-
-class UsuarioRol(SQLModel, table=True):
-    __tablename__ = "usuario_rol"
-
-    usuario_id: int = Field(foreign_key="usuarios.id", primary_key=True)
-    rol_id: int = Field(foreign_key="roles.id", primary_key=True)
-    asignado_por_id: int | None = Field(default=None, foreign_key="usuarios.id")
-    expires_at: datetime | None = Field(default=None, sa_type=DateTime(timezone=True))
-    created_at: datetime = Field(default_factory=ahora, sa_type=DateTime(timezone=True))
+    pedidos: list["Pedido"] = Relationship(back_populates="usuario")

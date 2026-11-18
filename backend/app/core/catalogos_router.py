@@ -1,17 +1,10 @@
 from fastapi import APIRouter, Depends
 from sqlmodel import select
 
-from app.core.security import Sesion, get_current_active_user
+from app.core.deps import Sesion, get_current_active_user
 from app.modules.pedidos.catalogos import EstadoPedido, FormaPago
-from app.modules.usuarios.models import Rol
-from app.modules.usuarios.schemas import RolPublic
 
 router = APIRouter(prefix="/api/v1", tags=["Catálogos"], dependencies=[Depends(get_current_active_user)])
-
-
-@router.get("/roles", response_model=list[RolPublic])
-def roles(session: Sesion):
-    return list(session.exec(select(Rol).order_by(Rol.nombre)).all())
 
 
 @router.get("/estados-pedido", response_model=list[EstadoPedido])
