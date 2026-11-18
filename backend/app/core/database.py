@@ -26,10 +26,8 @@ def get_session() -> Generator[Session, None, None]:
 
 def crear_tablas():
     # Importar los modelos para registrarlos antes de crear las tablas.
-    from app.categoria import model as categoria_model
-    from app.producto import model as producto_model
-
-    from app.ingrediente import model as ingrediente_model
+    from app.modules.categorias import models as categoria_model
+    from app.modules.productos import models as producto_model
     from app.modules.pedidos import models as pedido_models
 
     from app.modules.pedidos import catalogos

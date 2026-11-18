@@ -1,7 +1,7 @@
 from sqlmodel import Session, select
 
 from app.modules.pedidos.models import DetallePedido, Pedido
-from app.producto.model import Producto
+from app.modules.productos.models import Producto
 
 
 class PedidoRepository:
@@ -49,7 +49,7 @@ class ProductoRepository:
     def obtener(self, producto_id: int) -> Producto | None:
         consulta = (
             select(Producto)
-            .where(Producto.id == producto_id, Producto.deleted_at == None)
+            .where(Producto.id == producto_id, Producto.activo)
             .with_for_update(read=True)
         )
         return self.session.exec(consulta).first()

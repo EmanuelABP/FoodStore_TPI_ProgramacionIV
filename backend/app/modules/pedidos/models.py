@@ -5,6 +5,7 @@ from sqlalchemy import CheckConstraint, DateTime
 from sqlmodel import Field, Relationship, SQLModel
 
 if TYPE_CHECKING:
+    from app.modules.productos.models import Producto
     from app.modules.usuarios.models import Usuario
 
 
@@ -30,7 +31,10 @@ class DetallePedido(SQLModel, table=True):
         CheckConstraint("cantidad >= 1", name="ck_detalle_pedido_cantidad"),
     )
 
-    pedido_id: int = Field(foreign_key="pedidos.id", primary_key=True)
-    producto_id: int = Field(foreign_key="productos.id", primary_key=True)
+    id: int | None = Field(default=None, primary_key=True)
+    pedido_id: int = Field(foreign_key="pedidos.id")
+    producto_id: int = Field(foreign_key="productos.id")
     cantidad: int
     precio_unitario: float
+
+    producto: "Producto" = Relationship(back_populates="detalles")

@@ -1,0 +1,105 @@
+# Ejecutar en orden después de python -m app.db.seed sobre una base PostgreSQL de prueba.
+# Cambiar el lote para repetir las altas. Mantener habilitadas las cookies de REST Client.
+@base = http://localhost:8000/api/v1
+@lote = categorias-c7-01
+
+### Cerrar la sesión para probar acceso público (200)
+POST {{base}}/auth/logout
+
+### Listar categorías activas sin sesión (200)
+GET {{base}}/categorias
+
+### Rechazar un alta sin sesión (401)
+POST {{base}}/categorias
+Content-Type: application/json
+
+{"nombre":"Categoría {{lote}}"}
+
+### Registrar usuario de prueba (201)
+POST {{base}}/auth/register
+Content-Type: application/json
+
+{"username":"{{lote}}","full_name":"Cliente de catálogo","email":"{{lote}}@example.com","password":"PruebaCatalogo!"}
+
+### Entrar como usuario común (200)
+POST {{base}}/auth/token
+Content-Type: application/x-www-form-urlencoded
+
+username={{lote}}&password=PruebaCatalogo!
+
+### Rechazar escritura con rol user (403)
+POST {{base}}/categorias
+Content-Type: application/json
+
+{"nombre":"Categoría {{lote}}"}
+
+### Entrar como administrador local (200)
+POST {{base}}/auth/token
+Content-Type: application/x-www-form-urlencoded
+
+username=admin&password=Admin1234!
+
+### Crear una categoría (201)
+# @name categoria
+POST {{base}}/categorias
+Content-Type: application/json
+
+{"nombre":"Categoría {{lote}}","descripcion":"Descripción original"}
+
+### Crear otra categoría (201)
+# @name otraCategoria
+POST {{base}}/categorias
+Content-Type: application/json
+
+{"nombre":"Otra categoría {{lote}}"}
+
+### Validar el mínimo del nombre (422)
+POST {{base}}/categorias
+Content-Type: application/json
+
+{"nombre":"A"}
+
+### Rechazar nombre repetido en el alta (409)
+POST {{base}}/categorias
+Content-Type: application/json
+
+{"nombre":"Categoría {{lote}}"}
+
+### Obtener el detalle (200)
+GET {{base}}/categorias/{{categoria.response.body.$.id}}
+
+### Editar solo la descripción y conservar el nombre (200)
+PUT {{base}}/categorias/{{categoria.response.body.$.id}}
+Content-Type: application/json
+
+{"descripcion":"Descripción editada"}
+
+### Rechazar nombre repetido en la edición (409)
+PUT {{base}}/categorias/{{otraCategoria.response.body.$.id}}
+Content-Type: application/json
+
+{"nombre":"Categoría {{lote}}"}
+
+### Dar de baja sin borrar (204)
+DELETE {{base}}/categorias/{{categoria.response.body.$.id}}
+
+### Detalle de una categoría inactiva (404)
+GET {{base}}/categorias/{{categoria.response.body.$.id}}
+
+### Edición de una categoría inactiva (404)
+PUT {{base}}/categorias/{{categoria.response.body.$.id}}
+Content-Type: application/json
+
+{"descripcion":"No debe cambiar"}
+
+### Repetir la baja (404)
+DELETE {{base}}/categorias/{{categoria.response.body.$.id}}
+
+### El nombre de la categoría dada de baja sigue reservado (409)
+POST {{base}}/categorias
+Content-Type: application/json
+
+{"nombre":"Categoría {{lote}}"}
+
+### La categoría inactiva no aparece en el listado (200)
+GET {{base}}/categorias

@@ -11,10 +11,9 @@ from app.modules.usuarios.router import router as usuarios_router
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.database import crear_tablas
-from app.categoria.router import router as categoria_router
-from app.ingrediente.router import router as ingrediente_router
+from app.modules.categorias.router import router as categoria_router
 from app.modules.pedidos.router import router as pedido_router
-from app.producto.router import router as producto_router
+from app.modules.productos.router import router as producto_router
 
 
 @asynccontextmanager
@@ -62,7 +61,6 @@ app.include_router(auth_router, prefix="/api/v1")
 app.include_router(usuarios_router, prefix="/api/v1")
 app.include_router(catalogos_router)
 # Registrar los endpoints
-app.include_router(categoria_router)
-app.include_router(producto_router)
-app.include_router(ingrediente_router)
+app.include_router(categoria_router, prefix="/api/v1")
+app.include_router(producto_router, prefix="/api/v1")
 app.include_router(pedido_router)
