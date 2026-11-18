@@ -1,55 +1,51 @@
-from sqlmodel import Session, select
+from datetime import datetime
 
-from app.modules.pedidos.models import DetallePedido, Pedido
+from sqlalchemy.orm import selectinload
+from sqlmodel import Session, func, select
+
+from app.core.base_repository import BaseRepository
+from app.modules.pedidos.models import Estado, Pedido
 from app.modules.productos.models import Producto
+from app.modules.productos.repository import ProductoRepository
 
 
-class PedidoRepository:
-    def __init__(self, session: Session):
-        self.session = session
+class PedidoRepository(BaseRepository[Pedido]):
+    def __init__(self, session: Session) -> None:
+        super().__init__(session, Pedido)
 
-    def listar(self) -> list[Pedido]:
-        consulta = select(Pedido).where(Pedido.deleted_at == None).order_by(Pedido.id)
-        return list(self.session.exec(consulta).all())
-
-    def obtener(self, pedido_id: int, *, bloquear: bool = False) -> Pedido | None:
-        consulta = select(Pedido).where(Pedido.id == pedido_id, Pedido.deleted_at == None)
+    def obtener_con_items(self, pedido_id: int, *, bloquear: bool = False) -> Pedido | None:
+        consulta = select(Pedido).where(Pedido.id == pedido_id).options(selectinload(Pedido.items))
         if bloquear:
             consulta = consulta.with_for_update()
         return self.session.exec(consulta).first()
 
-    def crear(self, pedido: Pedido) -> int:
-        self.session.add(pedido)
-        self.session.flush()
-        assert pedido.id is not None
-        return pedido.id
+    def list_by_usuario(
+        self, usuario_id: int | None, *, estado: Estado | None, skip: int, limit: int,
+    ) -> tuple[int, list[Pedido]]:
+        consulta = select(Pedido)
+        if usuario_id is not None:
+            consulta = consulta.where(Pedido.usuario_id == usuario_id)
+        if estado is not None:
+            consulta = consulta.where(Pedido.estado == estado)
+
+        total = self.session.exec(select(func.count()).select_from(consulta.subquery())).one()
+        pagina = consulta.options(selectinload(Pedido.items)).order_by(Pedido.id.desc()).offset(skip).limit(limit)
+        return total, list(self.session.exec(pagina).all())
+
+    def agregar_resumen(self, inicio: datetime, fin: datetime) -> tuple[int, int, int, int, int, float]:
+        entregado = Pedido.estado == "ENTREGADO"
+        consulta = select(
+            func.count().filter(Pedido.estado == "PENDIENTE"),
+            func.count().filter(Pedido.estado == "EN_PREPARACION"),
+            func.count().filter(entregado),
+            func.count().filter(Pedido.estado == "CANCELADO"),
+            func.count().filter(Pedido.created_at >= inicio, Pedido.created_at < fin),
+            func.coalesce(func.sum(Pedido.total).filter(entregado), 0.0),
+        ).select_from(Pedido)
+        return self.session.exec(consulta).one()._tuple()
 
 
-class DetalleRepository:
-    def __init__(self, session: Session):
-        self.session = session
-
-    def listar(self, pedido_id: int) -> list[DetallePedido]:
-        consulta = (
-            select(DetallePedido)
-            .where(DetallePedido.pedido_id == pedido_id)
-            .order_by(DetallePedido.producto_id)
-        )
-        return list(self.session.exec(consulta).all())
-
-    def crear(self, detalle: DetallePedido) -> None:
-        self.session.add(detalle)
-        self.session.flush()
-
-
-class ProductoRepository:
-    def __init__(self, session: Session):
-        self.session = session
-
-    def obtener(self, producto_id: int) -> Producto | None:
-        consulta = (
-            select(Producto)
-            .where(Producto.id == producto_id, Producto.activo)
-            .with_for_update(read=True)
-        )
+class ProductoPedidoRepository(ProductoRepository):
+    def obtener_para_stock(self, producto_id: int) -> Producto | None:
+        consulta = select(Producto).where(Producto.id == producto_id).with_for_update()
         return self.session.exec(consulta).first()

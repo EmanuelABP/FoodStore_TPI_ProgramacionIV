@@ -29,8 +29,6 @@ def crear_tablas():
     from app.modules.categorias import models as categoria_model
     from app.modules.productos import models as producto_model
     from app.modules.pedidos import models as pedido_models
-
-    from app.modules.pedidos import catalogos
     from app.modules.usuarios import models as usuario_models
 
     SQLModel.metadata.create_all(engine)

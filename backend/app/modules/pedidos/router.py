@@ -1,52 +1,79 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Response
-from app.core.deps import get_current_active_user, require_role, solo_admin
-from app.modules.usuarios.models import Usuario
+from fastapi import APIRouter, Depends, HTTPException, Path, Query
 
-from app.modules.pedidos import service
-from app.modules.pedidos.schemas import PedidoCreate, PedidoRead, PedidoResumen, PedidoUpdate
+from app.core.deps import UsuarioActivo, solo_admin
+from app.modules.pedidos.models import Estado
+from app.modules.pedidos.schemas import CambioEstado, PedidoCreate, PedidoRead, PedidosPaginados, ResumenPedidos
+from app.modules.pedidos.service import (
+    PedidoAjeno, PedidoNoEncontrado, PedidoService, ProductoNoEncontrado, ReglaPedidoInvalida,
+)
+from app.modules.pedidos.unit_of_work import PedidoUnitOfWork
 
-router = APIRouter(prefix="/pedidos", tags=["Pedidos"], dependencies=[Depends(get_current_active_user)])
-Creador = Annotated[Usuario, Depends(require_role(["user", "admin"]))]
-
-
-@router.get("", response_model=list[PedidoResumen])
-def listar():
-    return service.listar()
+router = APIRouter(prefix="/pedidos", tags=["Pedidos"])
 
 
-@router.get("/{pedido_id}", response_model=PedidoRead)
-def obtener(pedido_id: int):
-    try:
-        return service.obtener(pedido_id)
-    except service.RecursoNoEncontrado as error:
-        raise HTTPException(status_code=404, detail=str(error)) from error
+def get_pedido_service() -> PedidoService:
+    return PedidoService(PedidoUnitOfWork())
+
+
+Servicio = Annotated[PedidoService, Depends(get_pedido_service)]
+PedidoId = Annotated[int, Path()]
 
 
 @router.post("", response_model=PedidoRead, status_code=201)
-def crear(datos: PedidoCreate, usuario: Creador):
+def crear(datos: PedidoCreate, usuario: UsuarioActivo, servicio: Servicio):
     try:
-        assert usuario.id is not None
-        return service.crear(datos, usuario.id)
-    except service.RecursoNoEncontrado as error:
+        return servicio.crear(datos, usuario)
+    except ProductoNoEncontrado as error:
         raise HTTPException(status_code=404, detail=str(error)) from error
-    except service.PedidoInvalido as error:
-        raise HTTPException(status_code=422, detail=str(error)) from error
+    except ReglaPedidoInvalida as error:
+        raise HTTPException(status_code=400, detail=str(error)) from error
 
 
-@router.put("/{pedido_id}", response_model=PedidoRead, dependencies=[Depends(solo_admin)])
-def actualizar(pedido_id: int, datos: PedidoUpdate):
+@router.get("", response_model=PedidosPaginados)
+def listar(
+    usuario: UsuarioActivo,
+    servicio: Servicio,
+    skip: Annotated[int, Query(ge=0)] = 0,
+    limit: Annotated[int, Query(ge=1, le=100)] = 20,
+    estado: Estado | None = None,
+):
+    return servicio.listar(usuario, skip=skip, limit=limit, estado=estado)
+
+
+@router.get("/resumen", response_model=ResumenPedidos, dependencies=[Depends(solo_admin)])
+def resumen(servicio: Servicio):
+    return servicio.resumen()
+
+
+@router.get("/{id}", response_model=PedidoRead)
+def obtener(id: PedidoId, usuario: UsuarioActivo, servicio: Servicio):
     try:
-        return service.actualizar(pedido_id, datos)
-    except service.RecursoNoEncontrado as error:
+        return servicio.obtener(id, usuario)
+    except PedidoNoEncontrado as error:
         raise HTTPException(status_code=404, detail=str(error)) from error
+    except PedidoAjeno as error:
+        raise HTTPException(status_code=403, detail=str(error)) from error
 
 
-@router.delete("/{pedido_id}", status_code=204, dependencies=[Depends(solo_admin)])
-def eliminar(pedido_id: int):
+@router.patch("/{id}/estado", response_model=PedidoRead, dependencies=[Depends(solo_admin)])
+def cambiar_estado(id: PedidoId, datos: CambioEstado, servicio: Servicio):
     try:
-        service.eliminar(pedido_id)
-    except service.RecursoNoEncontrado as error:
+        return servicio.cambiar_estado(id, datos.estado)
+    except (PedidoNoEncontrado, ProductoNoEncontrado) as error:
         raise HTTPException(status_code=404, detail=str(error)) from error
-    return Response(status_code=204)
+    except ReglaPedidoInvalida as error:
+        raise HTTPException(status_code=400, detail=str(error)) from error
+
+
+@router.patch("/{id}/cancelar", response_model=PedidoRead)
+def cancelar(id: PedidoId, usuario: UsuarioActivo, servicio: Servicio):
+    try:
+        return servicio.cancelar_propio(id, usuario)
+    except (PedidoNoEncontrado, ProductoNoEncontrado) as error:
+        raise HTTPException(status_code=404, detail=str(error)) from error
+    except PedidoAjeno as error:
+        raise HTTPException(status_code=403, detail=str(error)) from error
+    except ReglaPedidoInvalida as error:
+        raise HTTPException(status_code=400, detail=str(error)) from error

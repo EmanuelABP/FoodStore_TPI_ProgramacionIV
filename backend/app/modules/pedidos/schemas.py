@@ -1,49 +1,58 @@
 from datetime import datetime
-from typing import Annotated, Literal, Self
+from typing import Annotated
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import Field, StringConstraints
+from sqlmodel import SQLModel
 
-Estado = Literal["PENDIENTE", "CONFIRMADO", "EN_PREP", "EN_CAMINO", "ENTREGADO", "CANCELADO"]
+from app.modules.pedidos.models import Estado, FormaPago
 
 
-class DetalleCreate(BaseModel):
+class ItemPedidoCreate(SQLModel):
     producto_id: int
     cantidad: Annotated[int, Field(strict=True, ge=1, le=2147483647)]
 
 
-class PedidoCreate(BaseModel):
-    detalles: Annotated[list[DetalleCreate], Field(min_length=1)]
-
-    @model_validator(mode="after")
-    def validar_productos(self) -> Self:
-        if len({detalle.producto_id for detalle in self.detalles}) != len(self.detalles):
-            raise ValueError("No se puede repetir un producto en el pedido.")
-        return self
+class PedidoCreate(SQLModel):
+    items: Annotated[list[ItemPedidoCreate], Field(min_length=1)]
+    forma_pago: FormaPago
+    direccion_entrega: Annotated[str, StringConstraints(strip_whitespace=True, min_length=5, max_length=200)]
+    notas: str | None = None
 
 
-class PedidoUpdate(BaseModel):
-    estado: Estado
-
-
-class DetalleRead(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
-    pedido_id: int
+class DetallePedidoRead(SQLModel):
     producto_id: int
-    cantidad: int
+    nombre_producto: str
     precio_unitario: float
+    cantidad: int
+    subtotal: float
 
 
-class PedidoResumen(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
+class PedidoRead(SQLModel):
     id: int
     usuario_id: int
-    fecha: datetime
     estado: Estado
+    forma_pago: FormaPago
+    direccion_entrega: str
+    notas: str | None
     total: float
-    deleted_at: datetime | None
+    created_at: datetime
+    updated_at: datetime
+    items: list[DetallePedidoRead]
 
 
-class PedidoRead(PedidoResumen):
-    detalles: list[DetalleRead]
+class PedidosPaginados(SQLModel):
+    total: int
+    items: list[PedidoRead]
+
+
+class CambioEstado(SQLModel):
+    estado: Estado
+
+
+class ResumenPedidos(SQLModel):
+    pendientes: int
+    en_preparacion: int
+    entregados: int
+    cancelados: int
+    pedidos_hoy: int
+    ingresos_entregados: float

@@ -7,7 +7,6 @@ from app.core.database import crear_tablas
 from app.core.security import hash_password
 from app.modules.categorias.models import Categoria
 from app.modules.categorias.repository import CategoriaRepository
-from app.modules.pedidos.catalogos import EstadoPedido, FormaPago
 from app.modules.productos.models import Producto
 from app.modules.productos.repository import ProductoRepository
 from app.modules.usuarios.models import Usuario
@@ -68,23 +67,6 @@ def sembrar_catalogo(session: Session) -> None:
                 ))
 
 
-def sembrar_catalogos_de_pedidos(session: Session) -> None:
-    # Se conservan los catálogos del módulo de pedidos hasta su adaptación al TPI.
-    estados = [
-        ("PENDIENTE", "Pendiente"), ("CONFIRMADO", "Confirmado"), ("EN_PREP", "En preparación"),
-        ("EN_CAMINO", "En camino"), ("ENTREGADO", "Entregado"), ("CANCELADO", "Cancelado"),
-    ]
-    session.execute(insert(EstadoPedido).values([
-        dict(codigo=codigo, descripcion=descripcion, orden=orden, es_terminal=codigo in {"ENTREGADO", "CANCELADO"})
-        for orden, (codigo, descripcion) in enumerate(estados, 1)
-    ]).on_conflict_do_nothing(index_elements=["codigo"]))
-    session.execute(insert(FormaPago).values([
-        {"codigo": "EFECTIVO", "descripcion": "Efectivo", "activo": True},
-        {"codigo": "TARJETA", "descripcion": "Tarjeta", "activo": True},
-        {"codigo": "TRANSFERENCIA", "descripcion": "Transferencia", "activo": True},
-    ]).on_conflict_do_nothing(index_elements=["codigo"]))
-
-
 def sembrar() -> None:
     with UsuarioUnitOfWork() as uow:
         usuarios = uow.usuarios
@@ -105,7 +87,6 @@ def sembrar() -> None:
             raise RuntimeError("El username admin ya está reservado por una cuenta sin rol administrativo.")
 
         sembrar_catalogo(uow.session)
-        sembrar_catalogos_de_pedidos(uow.session)
 
 
 def main() -> None:

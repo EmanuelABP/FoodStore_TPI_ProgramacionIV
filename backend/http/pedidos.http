@@ -1,170 +1,362 @@
-# Ejecutar en orden. Los bloques con @name guardan los IDs de las altas.
-# Usar una base de prueba. La baja lógica conserva los productos y detalles del pedido.
-@baseUrl = http://localhost:8000
-@adminEmail = admin@foodstore.com
-@adminPassword = REEMPLAZAR_CON_CLAVE_DE_PRUEBA
+# Ejecutar en orden después de python -m app.db.seed, en una base PostgreSQL de prueba.
+# Mantener habilitadas las cookies de REST Client. Cada login reemplaza la sesión anterior.
+# Los ID de las altas se toman de sus respuestas. Cambiar @lote para repetir el recorrido
+# y volver a ejecutar las solicitudes con nombre antes de usar sus referencias.
+# Usar @idProductoInexistente y @idPedidoInexistente sin registros en la base de prueba.
+@base = http://localhost:8000/api/v1
+@lote = pedidos-c10-01
+@idProductoInexistente = 2147483647
+@idPedidoInexistente = 2147483647
 
-### Iniciar sesión como administrador (204)
-POST {{baseUrl}}/api/v1/auth/token
+### 1. Cerrar cualquier sesión (200)
+POST {{base}}/auth/logout
+
+### 2. Sin sesión no se pueden listar pedidos (401)
+GET {{base}}/pedidos
+
+### 3. Entrar como administrador del seed (200)
+POST {{base}}/auth/token
 Content-Type: application/x-www-form-urlencoded
 
-username={{adminEmail}}&password={{adminPassword}}
+username=admin&password=Admin1234!
 
-### Crear producto A (201)
+### 4. Crear la categoría de prueba (201)
+# @name categoria
+POST {{base}}/categorias
+Content-Type: application/json
+
+{
+  "nombre": "Pedidos {{lote}}"
+}
+
+### 5. Preparar Sándwich con stock 10 (201)
 # @name productoA
-POST {{baseUrl}}/productos/
+POST {{base}}/productos
 Content-Type: application/json
 
-{
-  "nombre": "Limonada TP8",
-  "descripcion": "Bebida",
-  "precio_base": 125.5
-}
+{"nombre":"Sándwich {{lote}}","precio_base":1250,"stock":10,"disponible":true,"categoria_id":{{categoria.response.body.$.id}}}
 
-### Crear producto B (201)
+### 6. Preparar Ensalada con stock 5 (201)
 # @name productoB
-POST {{baseUrl}}/productos/
+POST {{base}}/productos
+Content-Type: application/json
+
+{"nombre":"Ensalada {{lote}}","precio_base":900,"stock":5,"disponible":true,"categoria_id":{{categoria.response.body.$.id}}}
+
+### 7. Preparar Agotado por cocina con stock 4 (201)
+# @name noDisponible
+POST {{base}}/productos
+Content-Type: application/json
+
+{"nombre":"Agotado por cocina {{lote}}","precio_base":100,"stock":4,"disponible":false,"categoria_id":{{categoria.response.body.$.id}}}
+
+### 8. Preparar Para dar de baja con stock 9 (201)
+# @name inactivo
+POST {{base}}/productos
+Content-Type: application/json
+
+{"nombre":"Para dar de baja {{lote}}","precio_base":100,"stock":9,"disponible":true,"categoria_id":{{categoria.response.body.$.id}}}
+
+### 9. Dar de baja el cuarto producto (204)
+DELETE {{base}}/productos/{{inactivo.response.body.$.id}}
+
+### 10. Registrar al primer cliente (201)
+POST {{base}}/auth/register
 Content-Type: application/json
 
 {
-  "nombre": "Pan TP8",
-  "descripcion": "Pan casero",
-  "precio_base": 75
+  "username": "{{lote}}-a",
+  "full_name": "Cliente A",
+  "email": "{{lote}}-a@example.com",
+  "password": "PruebaPedidos!"
 }
 
-### Crear pedido PENDIENTE con dos detalles y total 326 (201)
-# @name pedido
-POST {{baseUrl}}/pedidos
+### 11. Registrar al segundo cliente (201)
+POST {{base}}/auth/register
 Content-Type: application/json
 
 {
-  "detalles": [
-    {
-      "producto_id": {{productoA.response.body.$.id}},
-      "cantidad": 2
-    },
-    {
-      "producto_id": {{productoB.response.body.$.id}},
-      "cantidad": 1
-    }
-  ]
+  "username": "{{lote}}-b",
+  "full_name": "Cliente B",
+  "email": "{{lote}}-b@example.com",
+  "password": "PruebaPedidos!"
 }
 
-### Listar pedidos activos (200)
-GET {{baseUrl}}/pedidos
+### 12. Entrar como cliente A (200)
+POST {{base}}/auth/token
+Content-Type: application/x-www-form-urlencoded
 
-### Consultar el pedido y sus detalles (200)
-GET {{baseUrl}}/pedidos/{{pedido.response.body.$.id}}
+username={{lote}}-a&password=PruebaPedidos!
 
-### Cambiar el precio de producto A (200)
-PUT {{baseUrl}}/productos/{{productoA.response.body.$.id}}
+### 13. Confirmar el usuario propietario que debe figurar en los pedidos (200)
+GET {{base}}/auth/me
+
+### 14. Rechazar pedido sin líneas (422)
+POST {{base}}/pedidos
+Content-Type: application/json
+
+{"items":[],"forma_pago":"EFECTIVO","direccion_entrega":"Av. Colón 123"}
+
+### 15. Rechazar cantidad cero (422)
+POST {{base}}/pedidos
+Content-Type: application/json
+
+{"items":[{"producto_id":{{productoA.response.body.$.id}},"cantidad":0}],"forma_pago":"EFECTIVO","direccion_entrega":"Av. Colón 123"}
+
+### 16. Rechazar medio de pago heredado (422)
+POST {{base}}/pedidos
+Content-Type: application/json
+
+{"items":[{"producto_id":{{productoA.response.body.$.id}},"cantidad":1}],"forma_pago":"TARJETA","direccion_entrega":"Av. Colón 123"}
+
+### 17. Rechazar dirección demasiado corta (422)
+POST {{base}}/pedidos
+Content-Type: application/json
+
+{"items":[{"producto_id":{{productoA.response.body.$.id}},"cantidad":1}],"forma_pago":"EFECTIVO","direccion_entrega":"abc"}
+
+### 18. Rechazar productos repetidos (400)
+POST {{base}}/pedidos
+Content-Type: application/json
+
+{"items":[{"producto_id":{{productoA.response.body.$.id}},"cantidad":1},{"producto_id":{{productoA.response.body.$.id}},"cantidad":1}],"forma_pago":"EFECTIVO","direccion_entrega":"Av. Colón 123"}
+
+### 19. Rechazar producto inexistente (404)
+POST {{base}}/pedidos
+Content-Type: application/json
+
+{"items":[{"producto_id":{{idProductoInexistente}},"cantidad":1}],"forma_pago":"EFECTIVO","direccion_entrega":"Av. Colón 123"}
+
+### 20. Rechazar producto inactivo (404)
+POST {{base}}/pedidos
+Content-Type: application/json
+
+{"items":[{"producto_id":{{inactivo.response.body.$.id}},"cantidad":1}],"forma_pago":"EFECTIVO","direccion_entrega":"Av. Colón 123"}
+
+### 21. Rechazar producto no disponible (400)
+POST {{base}}/pedidos
+Content-Type: application/json
+
+{"items":[{"producto_id":{{noDisponible.response.body.$.id}},"cantidad":1}],"forma_pago":"EFECTIVO","direccion_entrega":"Av. Colón 123"}
+
+### 22. Rechazar stock insuficiente (400)
+POST {{base}}/pedidos
+Content-Type: application/json
+
+{"items":[{"producto_id":{{productoA.response.body.$.id}},"cantidad":11}],"forma_pago":"EFECTIVO","direccion_entrega":"Av. Colón 123"}
+
+### 23. Fallar la segunda línea luego de procesar la primera (404)
+POST {{base}}/pedidos
+Content-Type: application/json
+
+{"items":[{"producto_id":{{productoA.response.body.$.id}},"cantidad":2},{"producto_id":{{idProductoInexistente}},"cantidad":1}],"forma_pago":"EFECTIVO","direccion_entrega":"Av. Colón 123"}
+
+### 24. Verificar rollback del descuento, stock 10 (200)
+GET {{base}}/productos/{{productoA.response.body.$.id}}
+
+### 25. Verificar rollback del pedido, total 0 para cliente A (200)
+GET {{base}}/pedidos
+
+### 26. Crear pedido propio con dos líneas y total 3400 (201)
+# @name pedidoA
+POST {{base}}/pedidos
+Content-Type: application/json
+
+{"items":[{"producto_id":{{productoA.response.body.$.id}},"cantidad":2},{"producto_id":{{productoB.response.body.$.id}},"cantidad":1}],"forma_pago":"EFECTIVO","direccion_entrega":"Av. Colón 123"}
+
+### 27. Comprobar descuento del producto A, stock 8 (200)
+GET {{base}}/productos/{{productoA.response.body.$.id}}
+
+### 28. Comprobar descuento del producto B, stock 4 (200)
+GET {{base}}/productos/{{productoB.response.body.$.id}}
+
+### 29. Consultar el propio detalle con nombres y precios originales (200)
+GET {{base}}/pedidos/{{pedidoA.response.body.$.id}}
+
+### 30. Listar propios pendientes paginados, total 1 (200)
+GET {{base}}/pedidos?estado=PENDIENTE&skip=0&limit=1
+
+### 31. Consultar siguiente página, total 1 e items vacío (200)
+GET {{base}}/pedidos?estado=PENDIENTE&skip=1&limit=1
+
+### 32. Rechazar límite mayor a 100 (422)
+GET {{base}}/pedidos?limit=101
+
+### 33. Bloquear resumen para cliente (403)
+GET {{base}}/pedidos/resumen
+
+### 34. Bloquear cambio administrativo para cliente (403)
+PATCH {{base}}/pedidos/{{pedidoA.response.body.$.id}}/estado
 Content-Type: application/json
 
 {
-  "nombre": "Limonada TP8",
-  "descripcion": "Bebida",
-  "precio_base": 300
+  "estado": "EN_PREPARACION"
 }
 
-### Verificar que el pedido conserva precio unitario 125.5 y total 326 (200)
-GET {{baseUrl}}/pedidos/{{pedido.response.body.$.id}}
+### 35. Entrar como cliente B (200)
+POST {{base}}/auth/token
+Content-Type: application/x-www-form-urlencoded
 
-### Actualizar el estado a CONFIRMADO (200)
-PUT {{baseUrl}}/pedidos/{{pedido.response.body.$.id}}
+username={{lote}}-b&password=PruebaPedidos!
+
+### 36. Confirmar que B no ve pedidos de A, total 0 (200)
+GET {{base}}/pedidos
+
+### 37. Bloquear detalle ajeno (403)
+GET {{base}}/pedidos/{{pedidoA.response.body.$.id}}
+
+### 38. Bloquear cancelación ajena (403)
+PATCH {{base}}/pedidos/{{pedidoA.response.body.$.id}}/cancelar
+
+### 39. Entrar nuevamente como cliente A (200)
+POST {{base}}/auth/token
+Content-Type: application/x-www-form-urlencoded
+
+username={{lote}}-a&password=PruebaPedidos!
+
+### 40. Cancelar pedido propio pendiente, total 3400 sin cambios (200)
+PATCH {{base}}/pedidos/{{pedidoA.response.body.$.id}}/cancelar
+
+### 41. Verificar primera restitución, stock 10 (200)
+GET {{base}}/productos/{{productoA.response.body.$.id}}
+
+### 42. Verificar segunda restitución, stock 5 (200)
+GET {{base}}/productos/{{productoB.response.body.$.id}}
+
+### 43. Rechazar cancelación repetida (400)
+PATCH {{base}}/pedidos/{{pedidoA.response.body.$.id}}/cancelar
+
+### 44. Confirmar que el reintento no repuso dos veces, stock 10 (200)
+GET {{base}}/productos/{{productoA.response.body.$.id}}
+
+### 45. Crear pedido a entregar con transferencia y total 2500 (201)
+# @name entrega
+POST {{base}}/pedidos
+Content-Type: application/json
+
+{"items":[{"producto_id":{{productoA.response.body.$.id}},"cantidad":2}],"forma_pago":"TRANSFERENCIA","direccion_entrega":"Av. Colón 123"}
+
+### 46. Crear otro pedido para cancelación administrativa (201)
+# @name adminCancela
+POST {{base}}/pedidos
+Content-Type: application/json
+
+{"items":[{"producto_id":{{productoB.response.body.$.id}},"cantidad":2}],"forma_pago":"EFECTIVO","direccion_entrega":"Av. Colón 123"}
+
+### 47. Entrar como administrador para gestionar pedidos (200)
+POST {{base}}/auth/token
+Content-Type: application/x-www-form-urlencoded
+
+username=admin&password=Admin1234!
+
+### 48. Listar pedidos de todos y filtrar por estado (200)
+GET {{base}}/pedidos?estado=PENDIENTE
+
+### 49. Leer el pedido del cliente como admin (200)
+GET {{base}}/pedidos/{{entrega.response.body.$.id}}
+
+### 50. Pedido inexistente (404)
+GET {{base}}/pedidos/{{idPedidoInexistente}}
+
+### 51. Rechazar estado heredado en el schema (422)
+PATCH {{base}}/pedidos/{{entrega.response.body.$.id}}/estado
 Content-Type: application/json
 
 {
   "estado": "CONFIRMADO"
 }
 
-### Rechazar un estado inválido (422)
-PUT {{baseUrl}}/pedidos/{{pedido.response.body.$.id}}
-Content-Type: application/json
-
-{
-  "estado": "DESCONOCIDO"
-}
-
-### Rechazar un pedido sin detalles (422)
-POST {{baseUrl}}/pedidos
-Content-Type: application/json
-
-{
-  "detalles": []
-}
-
-### Rechazar una cantidad menor que uno (422)
-POST {{baseUrl}}/pedidos
-Content-Type: application/json
-
-{
-  "detalles": [
-    {
-      "producto_id": {{productoA.response.body.$.id}},
-      "cantidad": 0
-    }
-  ]
-}
-
-### Rechazar un producto repetido (422)
-POST {{baseUrl}}/pedidos
-Content-Type: application/json
-
-{
-  "detalles": [
-    {
-      "producto_id": {{productoA.response.body.$.id}},
-      "cantidad": 1
-    },
-    {
-      "producto_id": {{productoA.response.body.$.id}},
-      "cantidad": 2
-    }
-  ]
-}
-
-### Listado antes de la prueba de rollback (200)
-GET {{baseUrl}}/pedidos
-
-### Fallar después del primer detalle válido y revertir el alta (404)
-POST {{baseUrl}}/pedidos
-Content-Type: application/json
-
-{
-  "detalles": [
-    {
-      "producto_id": {{productoA.response.body.$.id}},
-      "cantidad": 1
-    },
-    {
-      "producto_id": 2147483647,
-      "cantidad": 1
-    }
-  ]
-}
-
-### Comparar con el listado anterior: mismos pedidos y totales (200)
-GET {{baseUrl}}/pedidos
-
-### Consultar el pedido válido: conserva exactamente sus dos detalles (200)
-GET {{baseUrl}}/pedidos/{{pedido.response.body.$.id}}
-
-### Eliminar el pedido de forma lógica (204)
-DELETE {{baseUrl}}/pedidos/{{pedido.response.body.$.id}}
-
-### Comprobar que el listado ya no contiene el pedido eliminado (200)
-GET {{baseUrl}}/pedidos
-
-### Consultar el pedido eliminado (404)
-GET {{baseUrl}}/pedidos/{{pedido.response.body.$.id}}
-
-### Editar el pedido eliminado (404)
-PUT {{baseUrl}}/pedidos/{{pedido.response.body.$.id}}
+### 52. Rechazar salto directo a ENTREGADO (400)
+PATCH {{base}}/pedidos/{{entrega.response.body.$.id}}/estado
 Content-Type: application/json
 
 {
   "estado": "ENTREGADO"
 }
 
-### Repetir la baja del pedido eliminado (404)
-DELETE {{baseUrl}}/pedidos/{{pedido.response.body.$.id}}
+### 53. Avanzar a EN_PREPARACION (200)
+PATCH {{base}}/pedidos/{{entrega.response.body.$.id}}/estado
+Content-Type: application/json
+
+{
+  "estado": "EN_PREPARACION"
+}
+
+### 54. Avanzar el otro pedido a EN_PREPARACION (200)
+PATCH {{base}}/pedidos/{{adminCancela.response.body.$.id}}/estado
+Content-Type: application/json
+
+{
+  "estado": "EN_PREPARACION"
+}
+
+### 55. Cambiar nombre y precio del producto A (200)
+PUT {{base}}/productos/{{productoA.response.body.$.id}}
+Content-Type: application/json
+
+{
+  "nombre": "Sándwich editado {{lote}}",
+  "precio_base": 1800
+}
+
+### 56. Conservar nombre, precio 1250 y total 2500 pese a la edición (200)
+GET {{base}}/pedidos/{{entrega.response.body.$.id}}
+
+### 57. Volver al cliente A (200)
+POST {{base}}/auth/token
+Content-Type: application/x-www-form-urlencoded
+
+username={{lote}}-a&password=PruebaPedidos!
+
+### 58. El dueño no puede cancelar en preparación (400)
+PATCH {{base}}/pedidos/{{adminCancela.response.body.$.id}}/cancelar
+
+### 59. Volver al administrador (200)
+POST {{base}}/auth/token
+Content-Type: application/x-www-form-urlencoded
+
+username=admin&password=Admin1234!
+
+### 60. Entregar pedido en preparación (200)
+PATCH {{base}}/pedidos/{{entrega.response.body.$.id}}/estado
+Content-Type: application/json
+
+{
+  "estado": "ENTREGADO"
+}
+
+### 61. Rechazar cancelación de un pedido entregado (400)
+PATCH {{base}}/pedidos/{{entrega.response.body.$.id}}/estado
+Content-Type: application/json
+
+{
+  "estado": "CANCELADO"
+}
+
+### 62. Cancelar como admin desde EN_PREPARACION (200)
+PATCH {{base}}/pedidos/{{adminCancela.response.body.$.id}}/estado
+Content-Type: application/json
+
+{
+  "estado": "CANCELADO"
+}
+
+### 63. Rechazar una segunda cancelación administrativa (400)
+PATCH {{base}}/pedidos/{{adminCancela.response.body.$.id}}/estado
+Content-Type: application/json
+
+{
+  "estado": "CANCELADO"
+}
+
+### 64. Verificar stock de B restituido a 5 una sola vez (200)
+GET {{base}}/productos/{{productoB.response.body.$.id}}
+
+### 65. Verificar que el pedido entregado conserva el descuento, stock 8 (200)
+GET {{base}}/productos/{{productoA.response.body.$.id}}
+
+### 66. Resumen admin. En base limpia, 1 entregado, 2 cancelados, 3 hoy e ingresos 2500 (200)
+GET {{base}}/pedidos/resumen
+
+### 67. No existe borrado de pedidos (405)
+DELETE {{base}}/pedidos/{{pedidoA.response.body.$.id}}

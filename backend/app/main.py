@@ -5,7 +5,6 @@ from fastapi.exception_handlers import request_validation_exception_handler
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from app.core.config import FRONTEND_ORIGINS, TOKEN_MINUTES, secret_key
-from app.core.catalogos_router import router as catalogos_router
 from app.modules.auth.router import router as auth_router
 from app.modules.usuarios.router import router as usuarios_router
 from fastapi.middleware.cors import CORSMiddleware
@@ -60,8 +59,7 @@ async def error_validacion(request: Request, error: RequestValidationError):
 
 app.include_router(auth_router, prefix="/api/v1")
 app.include_router(usuarios_router, prefix="/api/v1")
-app.include_router(catalogos_router)
 # Registrar los endpoints
 app.include_router(categoria_router, prefix="/api/v1")
 app.include_router(producto_router, prefix="/api/v1")
-app.include_router(pedido_router)
+app.include_router(pedido_router, prefix="/api/v1")
