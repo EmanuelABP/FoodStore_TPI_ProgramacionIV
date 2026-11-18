@@ -10,7 +10,9 @@ import "./index.css";
 const queryClient = new QueryClient();
 setupInterceptors();
 useAuthStore.subscribe((actual, anterior) => {
-  if (actual.user?.id !== anterior.user?.id) queryClient.clear();
+  if (actual.user?.id !== anterior.user?.id || actual.user?.role !== anterior.user?.role) {
+    queryClient.clear();
+  }
 });
 
 createRoot(document.getElementById("root")!).render(

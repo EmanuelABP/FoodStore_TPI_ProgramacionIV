@@ -1,12 +1,14 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/features/auth";
+import { useCartStore } from "@/store/cartStore";
 import { useThemeStore } from "@/store/themeStore";
 import { mensajeApi } from "@/shared/api/servicioCrud";
 
 export default function Navbar() {
   const { user: sesion, checking, logout } = useAuth();
   const user = checking ? null : sesion;
+  const cantidad = useCartStore((state) => state.items.reduce((total, item) => total + item.cantidad, 0));
   const { darkMode, toggleTheme } = useThemeStore();
 
   useEffect(() => {
@@ -36,11 +38,20 @@ export default function Navbar() {
         <Link to="/" className="text-xl font-bold tracking-tight">Food Store</Link>
         <div className="flex flex-wrap gap-2">
           <Link className={estiloEnlace} to="/">Catálogo</Link>
+          <Link className={estiloEnlace} to="/carrito">Carrito ({cantidad})</Link>
+          {user && (
+            <>
+              {cantidad > 0 && <Link className={estiloEnlace} to="/checkout">Checkout</Link>}
+              <Link className={estiloEnlace} to="/mis-pedidos">Mis pedidos</Link>
+            </>
+          )}
           {user?.role === "admin" && (
             <>
               <Link className={estiloEnlace} to="/admin/categorias">Administrar categorías</Link>
               <Link className={estiloEnlace} to="/admin/productos">Administrar productos</Link>
               <Link className={estiloEnlace} to="/admin/usuarios">Usuarios</Link>
+              <Link className={estiloEnlace} to="/admin/pedidos">Administrar pedidos</Link>
+              <Link className={estiloEnlace} to="/admin/resumen">Resumen</Link>
             </>
           )}
           {!checking && !user && (

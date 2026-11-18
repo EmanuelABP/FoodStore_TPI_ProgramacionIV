@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, Navigate, useNavigate } from "react-router-dom";
+import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { useForm } from "@tanstack/react-form";
 import CampoCatalogo from "@/shared/components/CampoCatalogo";
 import { Cargando, ErrorMensaje } from "@/shared/components/EstadoListado";
@@ -9,6 +9,9 @@ import { useAuth } from "@/features/auth/hooks/useAuth";
 
 export default function LoginPage() {
   const navigate = useNavigate();
+  const { state } = useLocation();
+  const volverA: unknown = state?.volverA;
+  const destino = volverA === "/checkout" || volverA === "/mis-pedidos" ? volverA : "/";
   const [error, setError] = useState("");
   const { login, checking, user } = useAuth();
   const form = useForm({
@@ -17,14 +20,14 @@ export default function LoginPage() {
       setError("");
       try {
         await login(value.username.trim(), value.password);
-        navigate("/", { replace: true });
+        navigate(destino, { replace: true });
       } catch (error) {
         setError(mensajeApi(error));
       }
     },
   });
   if (checking) return <Cargando mensaje="Comprobando sesión…" />;
-  if (user) return <Navigate to="/" replace />;
+  if (user) return <Navigate to={destino} replace />;
 
   return (
     <AuthForm titulo="Iniciar sesión" onSubmit={() => { void form.handleSubmit(); }}>

@@ -13,7 +13,7 @@ interface CartState {
   items: CartItem[];
   agregar: (producto: ProductoRead) => void;
   quitar: (productoId: number) => void;
-  cambiarCantidad: (productoId: number, cantidad: number) => void;
+  cambiarCantidad: (productoId: number, cantidad: number, stock: number) => void;
   vaciar: () => void;
   total: () => number;
 }
@@ -45,10 +45,13 @@ export const useCartStore = create<CartState>()(persist(
     quitar(productoId) {
       set((state) => ({ items: state.items.filter((item) => item.producto_id !== productoId) }));
     },
-    cambiarCantidad(productoId, cantidad) {
+    cambiarCantidad(productoId, cantidad, stock) {
       if (!Number.isSafeInteger(cantidad) || cantidad < 1) return;
       set((state) => ({
-        items: state.items.map((item) => item.producto_id === productoId ? { ...item, cantidad } : item),
+        items: state.items.map((item) => {
+          const dentroDelLimite = cantidad <= item.cantidad || cantidad <= stock;
+          return item.producto_id === productoId && dentroDelLimite ? { ...item, cantidad } : item;
+        }),
       }));
     },
     vaciar: () => set({ items: [] }),
