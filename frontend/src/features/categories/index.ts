@@ -1,3 +1,3 @@
-export { default as CategoriesPage } from "@/features/categories/pages/CategoriesPage";
+export { default as AdminCategoriasPage } from "@/features/categories/pages/AdminCategoriasPage";
 export { useCategoriesList } from "@/features/categories/hooks/useCategories";
-export type { Categoria } from "@/features/categories/types/categoria";
+export type { CategoriaRead } from "@/features/categories/types/categoria";

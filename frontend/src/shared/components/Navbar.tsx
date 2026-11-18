@@ -34,14 +34,24 @@ export default function Navbar() {
     <header className="bg-slate-900 text-white shadow-md">
       <nav className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-6 py-5">
         <Link to="/" className="text-xl font-bold tracking-tight">Food Store</Link>
+        <div className="flex flex-wrap gap-2">
+          <Link className={estiloEnlace} to="/">Catálogo</Link>
+          {user?.role === "admin" && (
+            <>
+              <Link className={estiloEnlace} to="/admin/categorias">Administrar categorías</Link>
+              <Link className={estiloEnlace} to="/admin/productos">Administrar productos</Link>
+              <Link className={estiloEnlace} to="/admin/usuarios">Usuarios</Link>
+            </>
+          )}
+          {!checking && !user && (
+            <>
+              <Link className={estiloEnlace} to="/login">Iniciar sesión</Link>
+              <Link className={estiloEnlace} to="/register">Crear cuenta</Link>
+            </>
+          )}
+        </div>
         {user && (
           <>
-            <div className="flex flex-wrap gap-2">
-              <Link className={estiloEnlace} to="/categories">Categorías</Link>
-              <Link className={estiloEnlace} to="/products">Productos</Link>
-              <Link className={estiloEnlace} to="/ingredientes">Ingredientes</Link>
-              {user.role === "admin" && <Link className={estiloEnlace} to="/admin/usuarios">Usuarios</Link>}
-            </div>
             <div className="flex flex-wrap items-center gap-3">
               <span>{user.full_name} <span className="text-slate-300">({user.role})</span></span>
               <button className={estiloEnlace} type="button" disabled={cerrando}

@@ -1,8 +1,13 @@
-export interface Categoria {
+export interface CategoriaRead {
   id: number;
   nombre: string;
-  descripcion: string;
-  deleted_at: string | null;
+  descripcion: string | null;
+  activo: boolean;
 }
 
-export type CategoriaFormData = Omit<Categoria, "id" | "deleted_at">;
+export interface CategoriaCreate {
+  nombre: string;
+  descripcion?: string | null;
+}
+
+export type CategoriaUpdate = Partial<CategoriaCreate>;

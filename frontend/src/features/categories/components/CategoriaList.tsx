@@ -1,17 +1,17 @@
 import type { ColumnDef } from "@tanstack/react-table";
 import TablaCatalogo from "@/shared/components/TablaCatalogo";
-import type { Categoria } from "@/features/categories/types/categoria";
+import type { CategoriaRead } from "@/features/categories/types/categoria";
 
-const columnas: ColumnDef<Categoria>[] = [
+const columnas: ColumnDef<CategoriaRead>[] = [
   { accessorKey: "nombre", header: "Nombre" },
-  { accessorKey: "descripcion", header: "Descripción" },
+  { accessorKey: "descripcion", header: "Descripción", cell: ({ row }) => row.original.descripcion || "—" },
 ];
 
 interface CategoriaListProps {
-  registros: Categoria[];
+  registros: CategoriaRead[];
   ocupado: boolean;
   puedeEditar: boolean;
-  onEditar: (registro: Categoria) => void;
+  onEditar: (registro: CategoriaRead) => void;
   onEliminar: (id: number) => void;
 }
 

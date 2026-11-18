@@ -1,4 +1,5 @@
 import { useState } from "react";
+import type { ReactNode } from "react";
 import {
   flexRender, getCoreRowModel, getPaginationRowModel, getSortedRowModel, useReactTable,
 } from "@tanstack/react-table";
@@ -12,10 +13,11 @@ interface TablaProps<T extends { id: number }> {
   puedeEditar: boolean;
   onEditar: (registro: T) => void;
   onEliminar: (id: number) => void;
+  accionesExtra?: (registro: T) => ReactNode;
 }
 
 export default function TablaCatalogo<T extends { id: number }>({
-  registros, columnas, titulo, ocupado, puedeEditar, onEditar, onEliminar,
+  registros, columnas, titulo, ocupado, puedeEditar, onEditar, onEliminar, accionesExtra,
 }: TablaProps<T>) {
   const [sorting, setSorting] = useState<SortingState>([]);
   // TanStack Table v8 maneja su propio estado de tabla.
@@ -69,7 +71,8 @@ export default function TablaCatalogo<T extends { id: number }>({
                     <button className="btn-secundario" disabled={ocupado} type="button"
                       onClick={() => onEditar(fila.original)}>Editar</button>
                     <button className="btn-secundario text-red-700 dark:text-red-300" disabled={ocupado} type="button"
-                      onClick={() => onEliminar(fila.original.id)}>Eliminar</button>
+                      onClick={() => onEliminar(fila.original.id)}>Dar de baja</button>
+                    {accionesExtra?.(fila.original)}
                   </div>
                 </td>}
               </tr>

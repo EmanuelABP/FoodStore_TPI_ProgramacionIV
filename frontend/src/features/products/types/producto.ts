@@ -1,21 +1,40 @@
-import type { Categoria } from "@/features/categories";
+import type { CategoriaRead } from "@/features/categories";
 
-export interface Producto {
+export interface ProductoRead {
   id: number;
-  nombre: string;
-  descripcion: string;
-  precio_base: number;
-  imagenes_url: string[];
-  disponible: boolean;
-  ingrediente_ids: number[];
-  categorias: Array<Categoria & { es_principal: boolean }>;
-}
-
-export type ProductoDatos = Omit<Producto, "id" | "categorias">;
-
-export interface ProductoCategoriaDatos {
   categoria_id: number;
-  es_principal: boolean;
+  nombre: string;
+  descripcion: string | null;
+  precio_base: number;
+  imagen_url: string | null;
+  stock: number;
+  disponible: boolean;
+  activo: boolean;
+  categoria: CategoriaRead;
 }
 
-export type ProductoFormulario = ProductoDatos & { categorias: ProductoCategoriaDatos[] };
+export interface ProductoCreate {
+  nombre: string;
+  descripcion?: string | null;
+  precio_base: number;
+  imagen_url?: string | null;
+  stock?: number;
+  disponible?: boolean;
+  categoria_id: number;
+}
+
+export type ProductoUpdate = Partial<ProductoCreate>;
+export type ProductoStockUpdate = Pick<ProductoRead, "stock" | "disponible">;
+
+export interface ProductosPaginados {
+  total: number;
+  items: ProductoRead[];
+}
+
+export interface FiltrosProductos {
+  skip: number;
+  limit: number;
+  search?: string;
+  categoria_id?: number;
+  disponible?: boolean;
+}

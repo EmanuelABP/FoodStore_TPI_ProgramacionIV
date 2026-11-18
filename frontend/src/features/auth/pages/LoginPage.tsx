@@ -17,14 +17,14 @@ export default function LoginPage() {
       setError("");
       try {
         await login(value.username.trim(), value.password);
-        navigate("/categories", { replace: true });
+        navigate("/", { replace: true });
       } catch (error) {
         setError(mensajeApi(error));
       }
     },
   });
   if (checking) return <Cargando mensaje="Comprobando sesión…" />;
-  if (user) return <Navigate to="/categories" replace />;
+  if (user) return <Navigate to="/" replace />;
 
   return (
     <AuthForm titulo="Iniciar sesión" onSubmit={() => { void form.handleSubmit(); }}>

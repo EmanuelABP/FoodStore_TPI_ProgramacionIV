@@ -17,10 +17,10 @@
     @apply w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-800 focus:outline-blue-600 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100;
   }
 
-  .categoria-principal,
-  .categoria-principal option {
+  .selector-catalogo,
+  .selector-catalogo option {
     @apply bg-white text-slate-800 dark:bg-slate-800 dark:text-slate-100;
   }
-  .categoria-principal { color-scheme: light; }
-  .dark .categoria-principal { color-scheme: dark; }
+  .selector-catalogo { color-scheme: light; }
+  .dark .selector-catalogo { color-scheme: dark; }
 }

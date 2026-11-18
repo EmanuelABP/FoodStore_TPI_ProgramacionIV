@@ -1,46 +1,56 @@
-import { useRef } from "react";
-import { useQueryClient } from "@tanstack/react-query";
-import { useCategoriesList } from "@/features/categories";
-import { useIngredientsList } from "@/features/ingredients";
+import { useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCatalogo } from "@/shared/hooks/useCatalogo";
+import { notificarError } from "@/shared/api/notificarError";
+import { useNotificationStore } from "@/store/notificationStore";
 import { productoApi } from "@/features/products/services/producto";
-import type { Producto, ProductoCategoriaDatos, ProductoFormulario } from "@/features/products/types/producto";
+import type {
+  FiltrosProductos, ProductoCreate, ProductoRead, ProductoStockUpdate,
+} from "@/features/products/types/producto";
 
-export function useProducts(esAdmin: boolean) {
-  const cliente = useQueryClient();
-  const idAlta = useRef<number | null>(null);
+const clave = "productos";
+const servicioAdmin = {
+  ...productoApi,
+  listar: async (signal: AbortSignal) => (await productoApi.listar({ skip: 0, limit: 100 }, signal)).items,
+};
 
-  async function guardarCategorias(producto: Producto, categorias: ProductoCategoriaDatos[]) {
-    try {
-      return await productoApi.guardarCategorias(producto, categorias);
-    } catch (error) {
-      await cliente.invalidateQueries({ queryKey: ["productos"] });
-      throw error;
-    }
-  }
-
-  const catalogo = useCatalogo("productos", {
-    ...productoApi,
-    async crear({ categorias, ...datos }: ProductoFormulario) {
-      const producto = idAlta.current === null
-        ? await productoApi.crear(datos)
-        : await productoApi.actualizar(idAlta.current, datos);
-      // Si falla una asociación, el próximo Guardar continúa sobre el producto creado.
-      idAlta.current = producto.id;
-      return guardarCategorias(producto, categorias);
-    },
-    async actualizar(id, { categorias, ...datos }: ProductoFormulario) {
-      return guardarCategorias(await productoApi.actualizar(id, datos), categorias);
-    },
+export function useProductosPublicos(filtros: FiltrosProductos) {
+  return useQuery({
+    queryKey: [clave, "publico", filtros],
+    queryFn: ({ signal }) => productoApi.listar(filtros, signal),
   });
-  const ingredientes = useIngredientsList(esAdmin && catalogo.abierto);
-  const categorias = useCategoriesList(esAdmin && catalogo.abierto);
+}
 
-  function abrirProducto(producto: Producto | null) {
-    idAlta.current = null;
-    catalogo.abrir(producto);
+export function useProducts() {
+  const catalogo = useCatalogo<ProductoRead, ProductoCreate>(clave, servicioAdmin);
+  const [productoStock, setProductoStock] = useState<ProductoRead | null>(null);
+  const cliente = useQueryClient();
+  const stock = useMutation({
+    mutationFn: ({ id, datos }: { id: number; datos: ProductoStockUpdate }) => productoApi.actualizarStock(id, datos),
+    onSuccess: async () => {
+      await cliente.invalidateQueries({ queryKey: [clave] });
+      setProductoStock(null);
+      useNotificationStore.getState().showNotification("Stock y disponibilidad actualizados.");
+    },
+    onError: (error: Error) => notificarError(error),
+  });
+
+  function abrirStock(producto: ProductoRead) {
+    stock.reset();
+    setProductoStock(producto);
   }
 
+  function cerrarStock() {
+    setProductoStock(null);
+    stock.reset();
+  }
 
-  return { catalogo, ingredientes, categorias, abrirProducto };
+  function guardarStock(datos: ProductoStockUpdate) {
+    if (productoStock && !stock.isPending) stock.mutate({ id: productoStock.id, datos });
+  }
+
+  return {
+    catalogo, productoStock, abrirStock, cerrarStock, guardarStock,
+    guardandoStock: stock.isPending, errorStock: stock.error?.message,
+  };
 }
