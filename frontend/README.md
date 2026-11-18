@@ -43,12 +43,18 @@ Desde `frontend/`, instalá las versiones registradas en `pnpm-lock.yaml`.
 pnpm install --frozen-lockfile
 ```
 
-### Paso 3. Configurar la URL de la API · opcional
+### Paso 3. Configurar la URL de la API · opcional en local
 
-El frontend usa `http://localhost:8000` por defecto. Si la API está en otro host o puerto, desde `frontend/` definí `VITE_API_URL` en la misma terminal donde vas a iniciar Vite. Reemplazá el valor del ejemplo por el origen de tu API. Los servicios agregan sus rutas, por lo que el valor contiene solo el esquema, el host y el puerto.
+Desde `frontend/`, copiá el ejemplo si necesitás definir la URL. Con la configuración local predeterminada podés omitir este paso. Si ya existe `.env`, editalo y reiniciá Vite para aplicar el cambio.
 
 ```powershell
-$env:VITE_API_URL = "http://localhost:8000"
+if (-not (Test-Path -LiteralPath .env)) { Copy-Item -LiteralPath .env.example -Destination .env }
+```
+
+`frontend/.env.example` contiene este valor. Conservá el sufijo `/api/v1` si cambiás el host o el puerto.
+
+```dotenv
+VITE_API_URL=http://localhost:8000/api/v1
 ```
 
 ### Paso 4. Comprobar la compilación · opcional para el arranque
@@ -67,7 +73,7 @@ Desde `frontend/`, iniciá el servidor de desarrollo.
 pnpm dev
 ```
 
-Abrí [Food Store](http://localhost:5173) e iniciá sesión con el email y la contraseña que configuraste en el seed. Usá `localhost` para los dos servidores. Si Vite muestra otro puerto, agregá ese origen a la configuración CORS del backend y reiniciá la API. Si está definida `FRONTEND_ORIGINS`, actualizá esa lista. En caso contrario, editá `FRONTEND_ORIGIN`.
+Abrí [Food Store](http://localhost:5173) e iniciá sesión con el usuario `admin` y la contraseña local de demostración `Admin1234!`. Usá `localhost` para los dos servidores. Si Vite muestra otro puerto, agregá ese origen a la configuración CORS del backend y reiniciá la API. Si está definida `FRONTEND_ORIGINS`, actualizá esa lista. En caso contrario, editá `FRONTEND_ORIGIN`.
 
 ## Estructura
 
@@ -78,5 +84,8 @@ Abrí [Food Store](http://localhost:5173) e iniciá sesión con el email y la co
 
 ## Estado del frontend
 
-- **Disponible.** Registro e inicio de sesión por email, recuperación de sesión al recargar con `/api/v1/auth/me`, catálogo con sesión y rutas protegidas. El rol `admin` puede administrar categorías, productos e ingredientes, vincular categorías e ingredientes a productos y activar o desactivar usuarios en `/admin/users`. La barra de navegación permite cambiar de tema y los avisos se ocultan a los tres segundos. La sesión usa una cookie HttpOnly y el navegador conserva la preferencia de tema.
+- **Autenticación.** El login envía `username` y `password` en un formulario OAuth2. El registro solicita `username`, `full_name`, `email` y `password` de al menos ocho caracteres. Los formularios usan TanStack Form y muestran los errores de la API.
+- **Sesión y permisos.** Axios envía la cookie HttpOnly con `withCredentials`. Zustand guarda únicamente el perfil público en `sessionStorage`. Al abrir o recargar la aplicación, `checkSession` consulta `/api/v1/auth/me` y mantiene las rutas protegidas en espera hasta confirmar la sesión. El permiso para administrar usuarios depende de `role === "admin"`.
+- **Usuarios.** En `/admin/usuarios`, la tabla muestra nombre de usuario, nombre completo, email, rol y estado. Activar y desactivar actualiza el listado mediante TanStack Query. El administrador ve la acción Desactivar en las cuentas activas de otros usuarios.
+- **Catálogo heredado.** Categorías, productos e ingredientes conservan sus pantallas con sesión y sus rutas actuales. Para esas peticiones, Axios usa el origen de la API sin el prefijo `/api/v1`. La interfaz conserva el tema y los avisos existentes.
 - **Pendiente del TPI.** Catálogo público, carrito, checkout, consulta de pedidos propios y panel de gestión de stock y pedidos.
