@@ -3,11 +3,11 @@
 **Programación IV · UTN**  
 **Alumno:** Emanuel Aaron Brahim Pollini
 
-[README principal](../README.md) · [Guía del frontend](../frontend/README.md)
+[README principal](../README.md) · [Guía del frontend](../frontend/README.md) · [Video de demostración](https://youtu.be/NnbvWN_Fq0Y)
 
 ## Arquitectura y modelo de datos
 
-La API usa FastAPI, Pydantic y SQLModel sobre PostgreSQL. El código se organiza en los módulos `auth`, `usuarios`, `categorias`, `productos` y `pedidos` dentro de `app/modules/`. El núcleo `app/core/` contiene la configuración, la fábrica de sesiones, la seguridad y las clases compartidas. `app/db/` contiene el seed y `http/` reúne las solicitudes de REST Client.
+El backend implementa la API completa de Food Store con FastAPI, Pydantic y SQLModel sobre PostgreSQL. Los módulos `auth`, `usuarios`, `categorias`, `productos` y `pedidos`, dentro de `app/modules/`, cubren autenticación, usuarios, catálogo y pedidos, incluidas las transacciones de stock y el resumen administrativo. El núcleo `app/core/` contiene la configuración, la fábrica de sesiones, la seguridad y las clases compartidas. `app/db/` contiene el seed y `http/` reúne las solicitudes de REST Client.
 
 En categorías, productos y pedidos, el flujo es **Router → Service → Unit of Work → Repository → Model**. El router aplica permisos y traduce errores a HTTP. El servicio ejecuta las reglas de negocio y construye la respuesta dentro del Unit of Work. Este abre la sesión, la comparte con los repositorios, hace commit o rollback y cierra la sesión. Los repositorios de dominio usan `BaseRepository[T]`. Los schemas separan los datos de entrada y salida de los modelos de tabla.
 
@@ -35,6 +35,7 @@ Las dependencias directas están fijadas en [requirements.txt](requirements.txt)
 | Pydantic, pydantic-settings y python-dotenv | `2.14.3`, `2.16.3` y `1.2.4` |
 | Passlib con extra `bcrypt`, bcrypt y python-jose con extra `cryptography` | `1.7.4`, `4.0.1` y `3.5.0` |
 | email-validator y python-multipart | `2.4.0` y `0.0.34` |
+| tzdata (datos IANA para zonas horarias, también en Windows) | `2026.6` |
 
 ### Paso 1. Entrar a la carpeta del backend · obligatorio
 
@@ -199,7 +200,7 @@ El listado recibe `skip` (0 por defecto), `limit` (20 por defecto y 100 como má
 - **RN-05 · Historial.** El nombre y el precio unitario se copian del producto al comprar. El subtotal es el precio unitario por la cantidad y el total es la suma de subtotales. Se mantienen fijos. Los pedidos se conservan y su única modificación es el cambio de estado.
 - **RN-06 · Validaciones.** Cada pedido requiere al menos un ítem, cantidades enteras positivas, una dirección de 5 a 200 caracteres y un medio de pago `EFECTIVO` o `TRANSFERENCIA`. Las notas son opcionales.
 
-El resumen devuelve los conteos de los cuatro estados, los pedidos creados en el día UTC y los ingresos, que suman solo los totales de pedidos `ENTREGADO`.
+El resumen devuelve los conteos de los cuatro estados, los pedidos creados en el día local de Argentina (`America/Argentina/Buenos_Aires`) y los ingresos, que suman solo los totales de pedidos `ENTREGADO`. Las fechas se almacenan en UTC; los límites del día local se convierten a UTC para realizar la consulta.
 
 ## Pruebas con REST Client
 

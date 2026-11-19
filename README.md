@@ -3,6 +3,8 @@
 **Materia:** Programación IV · **Universidad:** Universidad Tecnológica Nacional (UTN)  
 **Alumno:** Emanuel Aaron Brahim Pollini
 
+**Video de demostración:** [Ver Food Store en funcionamiento](https://youtu.be/NnbvWN_Fq0Y) (aproximadamente 12 minutos).
+
 [Guía del backend](backend/README.md) · [Guía del frontend](frontend/README.md)
 
 Food Store es una tienda de comidas con catálogo público, carrito y pedidos. Los clientes pueden comprar y consultar sus pedidos. El panel de administración permite gestionar el catálogo, el stock, los usuarios y los pedidos.
@@ -217,11 +219,13 @@ Abrí [Food Store](http://localhost:5173) para recorrer el catálogo sin iniciar
 - **`tpi-catalogo`.** Catálogo público, administración de categorías y productos, y seed con stock inicial.
 - **`tpi-pedidos`.** Backend transaccional en `4be7f16`, frontend de compra y administración en `0cf74e0`, y cierre documental en `57acc6b`.
 - **Presentación y sesión.** Consolidación visual en `ae1bbd7`, correcciones de sesión en `2c62f8f` e integración de imágenes, firma y confirmaciones en `d86a682`.
+- **Ajustes de cumplimiento.** Dependencias exactas y nombre del paquete en `3b7a990`, validación de `SECRET_KEY` y nota de compatibilidad en `93b3bc4`, y cálculo de «Pedidos de hoy» según la fecha local de Argentina, manteniendo las fechas en UTC, en `dc4cb9a`.
+- **`tpi-entrega-final`.** Hito de la versión definitiva del TPI, con las funcionalidades completas, la instalación verificada y el video de demostración publicado.
 
 El código está en el [repositorio público de Food Store](https://github.com/EmanuelABP/FoodStore_TPI_ProgramacionIV).
 
-## Estado de la entrega
+## Verificaciones realizadas
 
-En las pruebas de esta etapa se ejecutó el seed dos veces en PostgreSQL y se completaron las 67 solicitudes de [pedidos.http](backend/http/pedidos.http). También se comprobó desde React el recorrido completo con FastAPI y PostgreSQL, incluidos el cambio de estado, la cancelación administrativa, la restitución del stock y la consulta del resumen. Los pedidos y los importes de esas pruebas dependen de la base utilizada.
+Se comprobó la instalación desde una descarga nueva del repositorio, siguiendo únicamente este README. Se instalaron el backend y el frontend, se configuró PostgreSQL, se ejecutó el seed y se verificó la compilación del frontend.
 
-Quedan pendientes el ZIP final, la instalación desde cero a partir de ese ZIP y el enlace al video de demostración.
+Las pruebas incluyeron 140 solicitudes HTTP y el recorrido desde el navegador: registro, login, catálogo, carrito, compras con descuento de stock, cancelaciones con restitución y gestión administrativa de categorías, productos, stock, disponibilidad, estados de pedidos y usuarios. Los pedidos y los importes de esas pruebas dependen de la base utilizada.

@@ -3,7 +3,7 @@
 **Tecnicatura Universitaria en Programación · UTN**  
 **Alumno:** Emanuel Aaron Brahim Pollini
 
-[README principal](../README.md) · [Guía del backend](../backend/README.md)
+[README principal](../README.md) · [Guía del backend](../backend/README.md) · [Video de demostración](https://youtu.be/NnbvWN_Fq0Y)
 
 El frontend ofrece el catálogo, el recorrido de compra y el panel de administración. Está desarrollado con React 19, TypeScript en modo estricto, Vite y Tailwind CSS 4. Usa Axios, TanStack Query, Form y Table, React Router y Zustand.
 
