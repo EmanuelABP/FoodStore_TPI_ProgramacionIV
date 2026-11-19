@@ -1,4 +1,5 @@
-from datetime import timedelta
+from datetime import timedelta, timezone
+from zoneinfo import ZoneInfo
 from math import fsum, isfinite
 
 from app.modules.pedidos.models import DetallePedido, Estado, Pedido, ahora_utc
@@ -159,9 +160,14 @@ class PedidoService:
 
     def resumen(self) -> ResumenPedidos:
         with self.uow as uow:
-            inicio = ahora_utc().replace(hour=0, minute=0, second=0, microsecond=0)
+            zona = ZoneInfo("America/Argentina/Buenos_Aires")
+            inicio_local = ahora_utc().astimezone(zona).replace(
+                hour=0, minute=0, second=0, microsecond=0, fold=0,
+            )
+            inicio = inicio_local.astimezone(timezone.utc)
+            fin = (inicio_local + timedelta(days=1)).astimezone(timezone.utc)
             pendientes, en_preparacion, entregados, cancelados, pedidos_hoy, ingresos = (
-                uow.pedidos.agregar_resumen(inicio, inicio + timedelta(days=1))
+                uow.pedidos.agregar_resumen(inicio, fin)
             )
             return ResumenPedidos(
                 pendientes=pendientes, en_preparacion=en_preparacion, entregados=entregados,

@@ -12,3 +12,5 @@ python-jose[cryptography]==3.5.0
 email-validator==2.4.0
 # La consigna del TPI (página 7) indica la versión 0.0.20, pero uso la 0.0.34 porque corrige una vulnerabilidad que puede afectar al procesamiento de formularios.
 python-multipart==0.0.34
+# Datos IANA para ZoneInfo, también en Windows.
+tzdata==2026.6
